@@ -1,6 +1,6 @@
 ---
 name: design-agent-onboarding
-description: Install and configure Design Agent, add a brand, connect Paper, choose MDA or self-hosting, and diagnose setup without exposing credentials.
+description: Install and configure Design Agent, add a brand, connect Paper, try it from the terminal, then hand off to self-hosting, and diagnose setup without exposing credentials.
 ---
 
 # Set up Design Agent
@@ -13,8 +13,8 @@ by name. Do not deploy, connect accounts or publish anything until the person as
    scripted run renders the sample brand's launch card in three sizes and a 4-second teaser with no
    keys. If it fails, `uv run design-agent doctor` says what is missing.
 2. **Model.** `uv run design-agent config set DESIGN_AGENT_MODEL=provider:model` and the provider's
-   key (`ANTHROPIC_API_KEY=…`, or `LANGSMITH_GATEWAY_API_KEY` for a `langsmith:` model; typed by the
-   person, or set in `.env` by hand). Defaults and other roles: `docs/models.md`. Re-run `doctor`,
+   key (`ANTHROPIC_API_KEY=…`, `OPENAI_API_KEY=…`, or the key of an OpenAI-compatible provider;
+   typed by the person, or set in `.env` by hand). Defaults and other roles: `docs/models.md`. Re-run `doctor`,
    then `uv run design-agent test model`: `doctor` only checks that a key is set, the test makes
    one cheap call with it.
 3. **Media keys (optional).** `OPENAI_API_KEY` (image generation), `ELEVENLABS_API_KEY` (voice,
@@ -27,10 +27,9 @@ by name. Do not deploy, connect accounts or publish anything until the person as
 6. **Try it.** `uv run design-agent ask "Make a LinkedIn card announcing …"`. Finals land in
    `workspace/out/<thread>/`, the last line estimates what the run cost, and `--thread <id>`
    continues a conversation.
-7. **Choose where it runs.** Managed Deep Agents (managed runtime, sandboxes, Slack app and
-   schedules; one command) or self-hosted (Docker Compose with Postgres and their own Slack app).
-   The [design-agent-deploy](../design-agent-deploy/SKILL.md) skill takes it from there, including
-   verifying with a real request.
+7. **Run it for the team.** Self-hosted: Docker Compose with Postgres, the HTTP API and their own
+   Slack app. The [design-agent-deploy](../design-agent-deploy/SKILL.md) skill takes it from
+   there, including verifying with a real request.
 8. **What next.** Teach it the deliverable the team asks for every week
    ([design-agent-customize](../design-agent-customize/SKILL.md)), and measure changes with
    [design-agent-evals](../design-agent-evals/SKILL.md).

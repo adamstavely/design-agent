@@ -12,13 +12,11 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from langchain.agents.middleware import AgentMiddleware
-from langchain.tools import ToolRuntime
-from langchain_core.tools import BaseTool, StructuredTool
-
 from design_agent.harness import notices
 from design_agent.harness.protocols import WakeTarget
 from design_agent.harness.workflow import RunRecord, WorkflowError, WorkflowRunner
+from design_agent.kit.middleware import AgentMiddleware
+from design_agent.kit.tools import BaseTool, StructuredTool, ToolRuntime
 from design_agent.middleware.background import (
     CANCELLERS,
     RESUMERS,

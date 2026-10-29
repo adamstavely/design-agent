@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-from langchain_core.messages import AIMessage, BaseMessage
 
 from design_agent import cli
 from design_agent.harness import inbox as inbox_module
+from design_agent.kit.messages import AIMessage, BaseMessage
 from design_agent.runtime import local
 from design_agent.testing.fakes import folder_binding
 from design_agent.testing.scripted_model import ScriptedChatModel, reply, tool_call

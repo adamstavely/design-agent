@@ -1,14 +1,19 @@
 # Architecture
 
-One agent assembly (`src/design_agent/assembly.py`) serves Managed Deep Agents, the CLI, the
-self-hosted API and Slack. Runtime profiles (`src/design_agent/runtime/`) supply what differs: the
-sandbox backend, how files are delivered, how the lead is woken, where state persists.
+One agent assembly (`src/design_agent/assembly.py`) serves the CLI, the self-hosted API and the
+self-hosted Slack app. It runs on a small agent runtime kept in this repository
+(`src/design_agent/kit/`): messages, tools, middleware hooks, the agent loop (`kit/agent.py`), file
+and shell tools, skills, `task` subagents and conversation compaction (`kit/deep/`), stores and
+checkpointers (`kit/store.py`, `kit/checkpoint.py`), MCP over FastMCP (`kit/mcp.py`), and chat
+models over the official `anthropic` and `openai` SDKs (`kit/models/`). Runtime profiles
+(`src/design_agent/runtime/`) supply what differs: the sandbox backend, how files are delivered,
+how the lead is woken, where state persists.
 
 | Page | Covers |
 | --- | --- |
 | [Orchestration](orchestration.md) | background helpers, wake-ups and check-ins, restarts and durable transcripts, pipelines, looks, render watchers, learning |
 | [Context and failures](context-and-failures.md) | what the model sees, tool disclosure, cache discipline, cost, failure boundaries |
-| [Surfaces](surfaces.md) | Slack progress, footer and steering on MDA and self-hosted, the API, the CLI |
+| [Surfaces](surfaces.md) | Slack progress, footer and steering, the API, the CLI |
 
 Request path: a message arrives (Slack, API, CLI) → the lead's turn: the workspace is staged into the
 thread's sandbox (skills' scripts, gates, brand pack, fonts) → the lead plans, composes, renders in
@@ -26,18 +31,18 @@ are data. Keys live in host tools; the sandbox has no credentials and no network
 - Helpers run in the background on the same sandbox and files. Each one has a heartbeat, a
   durable transcript, and a lead that can steer it.
 - Nobody sits and waits. Render watchers and check-ins wake the lead when work lands, fails or
-  stalls: one-time schedules on Managed Deep Agents, an in-process waker everywhere else.
+  stalls, through an in-process waker (`runtime/waker/local.py`).
 - Before anything ships, the lead and helpers look at their own renders with a vision `look`
   tool.
 
 ## The context
 
 - The always-on prompt is small, about 4k tokens. Workflows live in [skills](../../skills/)
-  (`skills/<name>/SKILL.md`) and load on demand. On Managed Deep Agents they mount read-only from
-  Context Hub.
+  (`skills/<name>/SKILL.md`), are read from the checkout at `/skills/` and listed by name in the
+  system prompt, and load on demand.
 - Brand facts come only from the brand pack. It's staged into the sandbox with its fonts and logos.
 - Context stays bounded:
-  - Long tool results go to files, with a short summary in the conversation.
+  - A long conversation is compacted into a summary, with the full transcript saved to a file.
   - Provider tool search loads MCP tools only when they're needed.
   - Helpers can clear old tool results server-side.
   - Prompt caching keeps the lead's prefix warm for an hour.
@@ -47,14 +52,12 @@ are data. Keys live in host tools; the sandbox has no credentials and no network
 - One recipe, [`sandbox/setup.sh`](../../sandbox/), pins Chrome Headless Shell, FFmpeg, HyperFrames,
   sharp, ECharts, D2 and open fonts by version and sha256. It ends with a probe that renders a
   page, a film and a diagram. The same recipe builds:
-  - the local and self-hosted Docker image;
-  - the LangSmith snapshot that Managed Deep Agents clones for each thread;
+  - the local and self-hosted Docker image (`design-agent sandbox build`);
   - the CI image.
 - Every thread gets its own sandbox, and its files persist in `/workspace/projects/` between turns.
-  - Locally, it's a container with no network, dropped capabilities, an unprivileged user, and
-    limits capped to your machine.
-  - On Managed Deep Agents, it's a LangSmith sandbox (16 GiB disk, 8 vCPU) with default-deny
-    egress.
+  - It's a Docker container with no network, dropped capabilities, an unprivileged user, and
+    limits capped to your machine (`DESIGN_AGENT_SANDBOX_VCPUS`, `DESIGN_AGENT_SANDBOX_MEM_GIB`).
+  - `DESIGN_AGENT_SANDBOX=host` runs on the host instead, for development only.
 - Before a run, a manifest with a sha256 checklist stages skills, the checks, your brand pack and
   its fonts into `/workspace`, read-only.
 
@@ -79,27 +82,27 @@ keep the keys, and drop their results in as files:
 - voice, music and sound effects;
 - transcription;
 - an asset fetcher with SSRF protection;
-- reading this deployment's own LangSmith traces (`list_traces`, `read_trace`);
 - Paper, scoped by a policy;
 - your MCP servers;
-- delivery: to Slack, to `workspace/out/` locally, or attached to the LangSmith trace for API
-  runs.
+- delivery: to the Slack thread, or to `workspace/out/` for the CLI and the API (which serves
+  delivered files for download).
 
 ## Where each piece runs
 
-| | Managed Deep Agents | Self-hosted |
+| | CLI and demo | Self-hosted API and Slack |
 | --- | --- | --- |
-| Agent | `agent.py` (`define_deep_agent`), `identity.py`, `memory.py`, `tools/mcp.py` | the same assembly in a FastAPI app |
-| Threads and memory | LangSmith; team and per-person memory layers (`memory.py`) | Postgres checkpointer and store; no memory layers |
-| Sandboxes | LangSmith sandboxes from your snapshot (`sandbox/__init__.py`) | containers on your Docker host |
-| Slack | managed app (`channels/slack.py`) | your Bolt app, Socket Mode or signed HTTP |
-| Wake-ups and housekeeping | runtime schedules; `schedules/housekeeping.py` every 15 minutes | in-process waker and maintenance loop |
-| Skills | synced to Context Hub; binary files ship as deployment files | read from the checkout |
+| Agent | the shared assembly (`runtime/local.py`) | the same assembly in a FastAPI app or a Bolt app |
+| Threads and store | SQLite files in `workspace/state/` | Postgres (`DATABASE_URL`), or SQLite without it |
+| Sandboxes | a Docker container per thread (or the host, for development) | containers on your Docker host |
+| Slack | none | your Bolt app, Socket Mode or signed HTTP |
+| Wake-ups and housekeeping | in-process waker while the command runs | in-process waker and maintenance loop (sweep every 15 minutes) |
+| Skills | read from the checkout | read from the checkout |
 
 ## Models
 
 Claude Opus 5.5 is the default, and any tool-calling model with vision works. A
 registry keyed by exact model id sets effort, tool search and output limits per role: lead,
-helper, look, tool selector and learning. The optional [LangSmith Gateway](../models.md) uses
-each provider's native route, so caching and context editing keep working. Every call is metered
-per job, helper and role, and LangSmith traces every run.
+helper, look, tool selector and learning. Anthropic and OpenAI models run on their own SDKs, so
+caching, context editing and tool search keep working; other providers (Groq, Mistral, Gemini,
+OpenRouter, or any compatible base URL) run on their OpenAI-compatible endpoints
+([Models](../models.md)). Every call is metered locally per job, helper and role.

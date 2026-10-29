@@ -9,11 +9,11 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
 
 from design_agent.config import Settings
 from design_agent.harness import inbox as inbox_module
 from design_agent.harness.tasks import REGISTRY
+from design_agent.kit.messages import AIMessage, BaseMessage, ToolMessage
 from design_agent.runtime.local import build_local_runtime
 from design_agent.surfaces.api.app import create_app
 from design_agent.testing.fakes import folder_binding

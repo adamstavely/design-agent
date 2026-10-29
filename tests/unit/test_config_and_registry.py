@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from design_agent.config import ModelSpec, Settings
-from design_agent.models.cache import CachedChatAnthropic
-from design_agent.models.factory import GATEWAY_NATIVE_ROUTES, build_chat_model, resolve_model
+from design_agent.models.factory import build_chat_model, resolve_model
 from design_agent.models.registry import (
-    CAPABILITY_REGISTRY,
-    GATEWAY_NATIVE_PROVIDERS,
     HIGH_EFFORT_MIN_OUTPUT_TOKENS,
     UNKNOWN_MODEL,
     ModelConfigurationError,
@@ -22,11 +21,9 @@ def settings(**values: object) -> Settings:
     return Settings(_env_file=None, **values)  # type: ignore[call-arg]
 
 
-def test_model_spec_parses_provider_and_gateway() -> None:
+def test_model_spec_parses_provider_and_model() -> None:
     spec = ModelSpec.parse("anthropic:claude-opus-5-5")
-    assert (spec.provider, spec.model, spec.via_gateway) == ("anthropic", "claude-opus-5-5", False)
-    gateway = ModelSpec.parse("langsmith:anthropic/claude-opus-5-5")
-    assert gateway.via_gateway and str(gateway.upstream) == "anthropic:claude-opus-5-5"
+    assert (spec.provider, spec.model) == ("anthropic", "claude-opus-5-5")
     with pytest.raises(ValueError, match="provider:model"):
         ModelSpec.parse("claude-opus-5-5")
 
@@ -35,41 +32,6 @@ def test_lookup_is_exact_never_substring() -> None:
     assert capabilities_for(ModelSpec.parse("anthropic:claude-opus-5-5")).verified
     assert capabilities_for(ModelSpec.parse("anthropic:claude-opus-5-5-preview")) is UNKNOWN_MODEL
     assert capabilities_for(ModelSpec.parse("anthropic:claude-opus")) is UNKNOWN_MODEL
-
-
-def test_the_gateway_keeps_native_features_only_on_a_providers_own_route() -> None:
-    native = capabilities_for(ModelSpec.parse("langsmith:anthropic/claude-opus-5-5"))
-    assert native == CAPABILITY_REGISTRY["anthropic:claude-opus-5-5"]
-    shared = capabilities_for(ModelSpec.parse("langsmith:google_genai/gemini-3-pro"))
-    assert shared.disclosure is ToolDisclosure.PORTABLE_SELECTOR
-    assert set(GATEWAY_NATIVE_ROUTES) == GATEWAY_NATIVE_PROVIDERS
-
-
-def test_a_gateway_anthropic_model_is_the_native_class_on_the_gateway_route() -> None:
-    s = settings(
-        model="langsmith:anthropic/claude-opus-5-5",
-        langsmith_gateway_api_key="lsv2_gateway",
-        anthropic_api_key="sk-ant-never-sent",
-    )
-    model = build_chat_model(s, "lead")
-    assert isinstance(model, CachedChatAnthropic)
-    assert model.model == "claude-opus-5-5"
-    assert model.anthropic_api_url == "https://gateway.smith.langchain.com/anthropic"
-    assert model.anthropic_api_key.get_secret_value() == "lsv2_gateway"
-    assert (model.effort, model.thinking, model.cache_ttl) == ("high", {"type": "adaptive"}, "1h")
-
-
-def test_the_gateway_falls_back_to_the_langsmith_key_and_never_to_a_provider_key() -> None:
-    s = settings(model="langsmith:anthropic/claude-opus-5-5", langsmith_api_key="lsv2_workspace")
-    assert build_chat_model(s, "lead").anthropic_api_key.get_secret_value() == "lsv2_workspace"  # type: ignore[attr-defined]
-    keyless = settings(model="langsmith:anthropic/claude-opus-5-5", anthropic_api_key="sk-ant-x")
-    assert build_chat_model(keyless, "lead").anthropic_api_key.get_secret_value() == ""  # type: ignore[attr-defined]
-
-
-def test_a_gateway_openai_model_uses_the_openai_route() -> None:
-    s = settings(model="langsmith:openai/gpt-6-sol", langsmith_gateway_api_key="lsv2_gateway")
-    model = build_chat_model(s, "lead")
-    assert model.openai_api_base == "https://gateway.smith.langchain.com/openai/v1"  # type: ignore[attr-defined]
 
 
 def test_custom_base_url_never_claims_native_search() -> None:
@@ -125,26 +87,7 @@ def test_base_url_requires_a_named_key(monkeypatch: pytest.MonkeyPatch) -> None:
         model_base_url="https://llm.example/v1",
         model_api_key_env="EXAMPLE_KEY",
     )
-    assert build_chat_model(s, "lead").openai_api_base == "https://llm.example/v1"  # type: ignore[attr-defined]
-
-
-@pytest.mark.parametrize(
-    "model_id", sorted(k for k in CAPABILITY_REGISTRY if k.startswith(("anthropic:", "openai:")))
-)
-def test_registry_agrees_with_installed_provider_profiles(model_id: str) -> None:
-    provider, model = model_id.split(":", 1)
-    if provider == "anthropic":
-        from langchain_anthropic.data._profiles import _PROFILES
-    else:
-        from langchain_openai.data._profiles import _PROFILES
-    profile = _PROFILES.get(model)
-    assert profile is not None, f"{model_id} is not a model the installed package knows"
-    caps = CAPABILITY_REGISTRY[model_id]
-    assert caps.vision == bool(profile.get("image_inputs"))
-    assert caps.max_output_tokens == profile.get("max_output_tokens")
-    assert caps.context_window == profile.get("max_input_tokens")
-    if profile.get("reasoning_effort_levels"):
-        assert caps.efforts == frozenset(profile["reasoning_effort_levels"])
+    assert build_chat_model(s, "lead").base_url == "https://llm.example/v1"  # type: ignore[attr-defined]
 
 
 def test_secrets_never_appear_in_repr() -> None:
@@ -161,14 +104,24 @@ def test_brand_path_falls_back_to_the_sample_brand(tmp_path) -> None:  # type: i
     assert settings().resolved_brand_path(tmp_path) == tmp_path / "workspace/brand"
 
 
-@pytest.mark.parametrize("name", ["Design Agent", "Design Agent Test", "design-agent_2.0", "A"])
-def test_a_slack_name_mda_accepts_is_accepted(name: str) -> None:
-    assert settings(slack_name=name).slack_name == name
+def test_other_providers_run_on_their_openai_compatible_endpoint() -> None:
+    model = build_chat_model(
+        settings(tool_selector_model="groq:llama-4-scout", groq_api_key="gsk-test"), "tool_selector"
+    )
+    assert model.provider_name == "groq"
+    assert model.base_url == "https://api.groq.com/openai/v1"  # type: ignore[attr-defined]
+    assert model.use_responses_api is False  # type: ignore[attr-defined]
 
 
-@pytest.mark.parametrize(
-    "name", ["Design Agent (test)", " Design Agent", "Design Agent-", "Design!"]
-)
-def test_a_slack_name_mda_would_reject_fails_before_the_deploy(name: str) -> None:
-    with pytest.raises(ValueError, match="slack_name"):
-        settings(slack_name=name)
+def test_a_compatible_providers_key_is_read_from_the_project_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
+    (tmp_path / ".env").write_text("MISTRAL_API_KEY=mk-from-dotenv\n")
+    model = build_chat_model(
+        settings(tool_selector_model="mistral:mistral-large-3"),
+        "tool_selector",
+        project_root=tmp_path,
+    )
+    assert model.api_key is not None  # type: ignore[attr-defined]
+    assert model.api_key.get_secret_value() == "mk-from-dotenv"  # type: ignore[attr-defined]

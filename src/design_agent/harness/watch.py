@@ -27,8 +27,8 @@ only success. `harness.offload` reuses the runner for detached jobs.
 the lead had not heard nor a watch it cut off: that one is reported as interrupted and stays
 resumable for `RESUMABLE_SECONDS` (a day).
 
-Deep Agents' `execute` runs a command to completion inside the tool call, with no background
-command and no watcher; this module would sit beside it upstream.
+The kit's `execute` runs a command to completion inside the tool call, with no background
+command and no watcher.
 """
 
 from __future__ import annotations

@@ -6,8 +6,6 @@ import base64
 import io
 
 import pytest
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
-from langchain_core.messages.utils import count_tokens_approximately
 from PIL import Image
 
 from design_agent.harness.context import (
@@ -18,6 +16,12 @@ from design_agent.harness.context import (
     image_size,
     image_tokens,
     image_tokens_of,
+)
+from design_agent.kit.messages import (
+    AIMessage,
+    HumanMessage,
+    ToolMessage,
+    count_tokens_approximately,
 )
 
 

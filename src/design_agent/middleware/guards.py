@@ -22,9 +22,8 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from langchain.agents.middleware import AgentMiddleware
-from langchain_core.language_models import BaseChatModel
-
+from design_agent.kit.middleware import AgentMiddleware
+from design_agent.kit.models import BaseChatModel
 from design_agent.middleware.image_clamp import ImageClampMiddleware
 from design_agent.middleware.meter import UsageMeterMiddleware
 from design_agent.middleware.model_retry import ModelFailureBoundary, TransientModelRetryMiddleware

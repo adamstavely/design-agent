@@ -1,13 +1,13 @@
 """Vendored upstream skills: the lock, verification and the vendoring sync.
 
-Skills for the deployed agent keep their upstream names at `skills/<name>/` (MDA discovers skills
+Skills for the deployed agent keep their upstream names at `skills/<name>/` (skills are discovered
 one level deep); skills for coding agents sit at `.agents/skills/<name>/`. Both are byte-identical
 to their upstream at its pinned commit. `skills-lock.json` records each upstream's repository,
 commit and license, every vendored file's sha256 under `skills` (runtime) or `agent_skills`
-(coding agents), and files deliberately left out with the reason. MDA syncs `skills/` to Context
-Hub, which takes only UTF-8 text, so a runtime skill's binary files (fonts, images) are vendored to
+(coding agents), and files deliberately left out with the reason. `skills/` holds only UTF-8 text
+(the skill list is read as text), so a runtime skill's binary files (fonts, images) are vendored to
 `skill-binaries/<name>/` instead and listed under `binaries`; the workspace stager puts them back
-beside the skill in the sandbox, and a plain `mda deploy` works. CI fails if a vendored file
+beside the skill in the sandbox. CI fails if a vendored file
 differs, an unlisted file appears, or an excluded file is present. Local routing and guidance live
 in our own sibling skills and summaries, never as edits.
 """
@@ -76,33 +76,6 @@ UPSTREAMS: dict[str, Upstream] = {
             "general-video",
             "motion-graphics",
             "remotion-to-hyperframes",
-        ),
-    ),
-    # LangChain's skill packs publish from `main`; their v0.1.0 tags predate most of the skills.
-    # Left out: LangChain, LangGraph, eval-engineering, swarm, custom apps and online evals, which
-    # cover building other agents rather than running or changing this one.
-    "langsmith-skills": Upstream(
-        repo="langchain-ai/langsmith-skills",
-        commit="1fb52e836f2d9f8d95c9f0b27d796ab20dac34d1",
-        release=None,
-        license="MIT",
-        license_file="licenses/langsmith-skills-LICENSE.txt",
-        source="config/skills",
-        runtime=("langsmith-trace",),
-        coding=("langsmith-dataset", "langsmith-evaluator"),
-    ),
-    "langchain-skills": Upstream(
-        repo="langchain-ai/langchain-skills",
-        commit="16a992f09ab3ccfb642dd4f08d350d833d1990bf",
-        release=None,
-        license="MIT",
-        license_file="licenses/langchain-skills-LICENSE.txt",
-        source="config/skills",
-        coding=(
-            "deep-agents-core",
-            "deep-agents-memory",
-            "deep-agents-orchestration",
-            "managed-deep-agents",
         ),
     ),
 }

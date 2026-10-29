@@ -9,8 +9,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from importlib.resources import files
 
-from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
-
+from design_agent.kit.messages import AIMessage, BaseMessage, ToolMessage
 from design_agent.testing.scripted_model import (
     Step,
     last_json,

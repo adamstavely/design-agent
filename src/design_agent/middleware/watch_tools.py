@@ -26,11 +26,6 @@ import uuid
 from collections.abc import Coroutine
 from typing import Any, Literal
 
-from langchain.agents.middleware import AgentMiddleware
-from langchain.tools import ToolRuntime
-from langchain_core.runnables.config import var_child_runnable_config
-from langchain_core.tools import BaseTool, StructuredTool
-
 from design_agent.harness import notices
 from design_agent.harness.offload import OffloadRunner, SandboxDetachedRender
 from design_agent.harness.protocols import ExecResult, WakeTarget
@@ -44,6 +39,9 @@ from design_agent.harness.watch import (
     WatchSource,
     parser_for,
 )
+from design_agent.kit.config import var_child_runnable_config
+from design_agent.kit.middleware import AgentMiddleware
+from design_agent.kit.tools import BaseTool, StructuredTool, ToolRuntime
 from design_agent.middleware.background import (
     CANCELLERS,
     DESCRIBERS,

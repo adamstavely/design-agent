@@ -1,15 +1,16 @@
 ---
 name: vendor-sync
-description: Move a vendored upstream (HyperFrames, LangSmith skills, Deep Agents skills) to a newer pin, re-vendor its skills unmodified, verify them, and update everything that depends on the pin.
+description: Move a vendored upstream (HyperFrames) to a newer pin, re-vendor its skills unmodified, verify them, and update everything that depends on the pin.
 ---
 
 # Update vendored skills
 
 Vendored skills are never edited; they are replaced from upstream at a commit and checked against
 `skills-lock.json` in CI. Each upstream's pin lives in `UPSTREAMS` in
-`src/design_agent/skills_lock.py`, with the skills it vendors into `skills/` (runtime) and
-`.agents/skills/` (coding agents). `uv run design-agent skills sync-vendor --check-only` compares
-every pin with its upstream's newest release (HyperFrames) or `main` commit (LangChain's packs).
+`src/design_agent/skills_lock.py`, with the skills it vendors into `skills/` (runtime) and, for an
+upstream that has them, `.agents/skills/` (coding agents). Today the only upstream is HyperFrames.
+`uv run design-agent skills sync-vendor --check-only` compares every pin with its upstream's newest
+release.
 
 ## HyperFrames
 
@@ -23,18 +24,8 @@ every pin with its upstream's newest release (HyperFrames) or `main` commit (Lan
    unlicensed fonts and bundled libraries. Upstream skills carry their own `.gitignore`s:
    `git add -f` any locked file they hide (`test_git_tracks_every_locked_file` names them).
 4. Rebuild and prove: `uv run design-agent sandbox build`, `sandbox test`,
-   `uv run pytest -q -m render`, `uv run design-agent demo`. MDA deployments need
-   `sandbox publish` again, since the recipe changed.
-
-## LangSmith and Deep Agents skills
-
-1. Read what changed on `main` of `langchain-ai/langsmith-skills` or `langchain-ai/langchain-skills`
-   since the pinned commit, then bump that entry's `commit` in `UPSTREAMS`.
-2. `uv run design-agent skills sync-vendor --upstream langsmith-skills` (or `langchain-skills`);
-   review `git diff skills/ .agents/skills/ skills-lock.json`.
-3. If `langsmith-trace` changed, check its one-line summary in `config/vendored-skills.toml` still
-   steers the deployed agent to `list_traces` and `read_trace`: its sandbox has no network and no
-   LangSmith key, so the CLI the skill teaches cannot run there.
+   `uv run pytest -q -m render`, `uv run design-agent demo`. Self-hosted deployments rebuild the
+   image on their next `docker compose … up -d --build`, since the recipe changed.
 
 ## Every upstream
 

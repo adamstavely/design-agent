@@ -14,9 +14,6 @@ subscribing, and a new surface (a web UI, a log) is one more subscriber.
 `EventLog` keeps a thread's events in the deployment store too, so a later process (after a deploy)
 can read the job (a post-job review, a rebuilt status). The bus is in-process and lossy by design
 (a subscriber that raises is logged and skipped); the log is the durable copy.
-
-Deep Agents has no event bus yet. The closest pieces are LangGraph's `custom` stream mode
-(`get_stream_writer`) for live progress, and `AsyncSubAgentMiddleware`'s polled task status.
 """
 
 from __future__ import annotations
@@ -185,7 +182,7 @@ EVENT_TTL_MINUTES = 7 * 24 * 60
 class EventLog:
     """A thread's events in the deployment store: the durable twin of the bus.
 
-    Namespace `("harness", "events", <thread_id>)`; keys sort by time. The store is LangGraph's
+    Namespace `("harness", "events", <thread_id>)`; keys sort by time. The store is the kit's
     `BaseStore` (`aput`, `asearch`); a store that rejects `ttl` gets the put without it.
     """
 

@@ -26,9 +26,6 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from langchain.agents.middleware import AgentMiddleware
-from langchain.tools import ToolRuntime, tool
-
 from design_agent.harness import events as ev
 from design_agent.harness.branches import (
     LookResult,
@@ -40,6 +37,8 @@ from design_agent.harness.branches import (
 )
 from design_agent.harness.learning import ObservationStore
 from design_agent.harness.protocols import ExecResult, HelperRunner, SandboxExec
+from design_agent.kit.middleware import AgentMiddleware
+from design_agent.kit.tools import ToolRuntime, tool
 from design_agent.tools.files import BackendFor, WorkspaceError, require_backend
 from design_agent.tools.projects import PROJECT_SLUG, PROJECTS_ROOT
 
@@ -59,7 +58,7 @@ WATCHES: dict[tuple[str, str], list[LookWatch]] = {}
 
 @dataclass(frozen=True)
 class BackendExec:
-    """`SandboxExec` over a deepagents sandbox backend's `aexecute`."""
+    """`SandboxExec` over a kit sandbox backend's `aexecute`."""
 
     backend: Any
 

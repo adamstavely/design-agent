@@ -40,8 +40,9 @@ money and run only on request ([docs/evals.md](docs/evals.md)).
 - Keys stay on the host. Nothing reaches the sandbox but files; host tools fetch and generate.
 - Anything that leaves the thread (publishing, posting elsewhere) needs a person in the loop.
 - Untrusted input stays data: user files, Slack events, canvas content, MCP metadata, web pages.
-- Public Managed Deep Agents APIs only. A missing seam goes behind an interface with an MDA adapter
-  and a self-host adapter, and an upstream ask.
+- No agent-framework dependency. The runtime is `src/design_agent/kit/`; models are reached
+  through the official `anthropic` and `openai` SDKs (CI fails if a LangChain-family package
+  enters `uv.lock`).
 - Keep the root prompt small (`tests/contract/test_prompt_budget.py`); workflows go in skills.
 - No company-specific content: brands, people, ids, licensed fonts or third-party media
   (`tests/unit/test_public_hygiene.py`).

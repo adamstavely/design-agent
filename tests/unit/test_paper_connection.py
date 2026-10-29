@@ -1,4 +1,4 @@
-"""Paper's connection per mode and runtime, and the stdio transport it needs in `tools/mcp.py`."""
+"""Paper's connection per mode, and the stdio transport it needs in `tools/mcp.py`."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from pydantic import SecretStr
 
 from design_agent.config import Settings
 from design_agent.tools import mcp
@@ -15,11 +14,9 @@ from design_agent.tools.mcp import (
     McpConfigError,
     McpServer,
     declared_servers,
-    mda_declaration,
     servers_for_runtime,
 )
 from design_agent.tools.paper import (
-    BRIDGE_CONNECTION,
     LOCAL_HTTP,
     PaperConfigError,
     paper_cli,
@@ -87,11 +84,6 @@ def test_local_takes_desktops_legacy_http_endpoint_and_nothing_else() -> None:
             paper_server(settings(paper_mode="local", paper_mcp_url=url), runtime="local")
 
 
-def test_local_is_not_served_on_mda() -> None:
-    with pytest.raises(PaperConfigError, match="on Managed Deep Agents use PAPER_MODE=bridged"):
-        paper_server(settings(paper_mode="local"), runtime="mda", cli=found)
-
-
 def test_bridged_locally_carries_the_bearer_from_settings_and_never_prints_it() -> None:
     configured = settings(
         paper_mode="bridged",
@@ -99,20 +91,9 @@ def test_bridged_locally_carries_the_bearer_from_settings_and_never_prints_it() 
         paper_bridge_token=TOKEN,
     )
     server = paper_server(configured, runtime="self_hosted")
-    assert server is not None and server.connection is None
+    assert server is not None
     assert server.headers({}) == {"Authorization": f"Bearer {TOKEN}"}
     assert TOKEN not in repr(server)
-
-
-def test_bridged_on_mda_names_the_workspace_connection_and_holds_no_secret() -> None:
-    configured = settings(
-        paper_mode="bridged",
-        paper_mcp_url="https://paper.example.com/mcp",
-        paper_bridge_token=TOKEN,
-    )
-    server = paper_server(configured, runtime="mda")
-    assert server is not None
-    assert (server.connection, server.bearer) == (BRIDGE_CONNECTION, None)
 
 
 @pytest.mark.parametrize(
@@ -120,7 +101,6 @@ def test_bridged_on_mda_names_the_workspace_connection_and_holds_no_secret() -> 
     [
         ({"paper_mcp_url": None}, "local", "PAPER_MCP_URL"),
         ({"paper_mcp_url": "http://paper.example.com/mcp"}, "local", "https"),
-        ({"paper_mcp_url": "http://127.0.0.1:29980/mcp"}, "mda", "https"),
         ({"paper_mcp_url": "https://paper.example.com/mcp"}, "local", "PAPER_BRIDGE_TOKEN"),
     ],
 )
@@ -163,11 +143,12 @@ def test_servers_for_runtime_adds_paper_after_the_declared_servers(
 
 
 def test_a_paper_that_cannot_be_served_leaves_only_paper_out(
-    tmp_path: Path, caplog: pytest.LogCaptureFixture
+    tmp_path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     write_config(tmp_path, '[servers.docs]\nurl = "https://docs.example.com/mcp"\n')
+    monkeypatch.setattr("design_agent.tools.paper.paper_cli", missing)
     with caplog.at_level(logging.WARNING, logger=mcp.__name__):
-        servers = servers_for_runtime(tmp_path, settings(paper_mode="local"), "mda")
+        servers = servers_for_runtime(tmp_path, settings(paper_mode="local"), "local")
     assert [s.name for s in servers] == ["docs"]
     assert "paper left out" in caplog.text
 
@@ -195,22 +176,3 @@ def test_a_stdio_child_gets_only_the_sdks_safe_environment() -> None:
         {"ANTHROPIC_API_KEY": "k"},
     )
     assert (transport.command, transport.args, transport.env) == ("paper", ["mcp"], None)
-
-
-def test_mda_leaves_stdio_and_bearer_only_servers_out(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
-    declared: dict[str, Any] = {}
-    monkeypatch.setattr(
-        "managed_deepagents.define_mcp", lambda **config: declared.update(config) or "declared"
-    )
-    servers = [
-        McpServer("paper", "", transport="stdio", command=("paper", "mcp")),
-        McpServer("bridge", "https://b.example/mcp", bearer=SecretStr(TOKEN)),
-        McpServer("docs", "https://docs.example.com/mcp"),
-    ]
-    with caplog.at_level(logging.WARNING, logger=mcp.__name__):
-        assert mda_declaration(servers) == "declared"
-    assert list(declared["servers"]) == ["docs"]
-    assert "paper left out on MDA: it runs over stdio" in caplog.text
-    assert mda_declaration(servers[:1]) is None

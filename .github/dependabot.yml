@@ -5,12 +5,11 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      langchain-stack:
+      model-and-mcp-sdks:
         patterns:
-          - "deepagents"
-          - "managed-deepagents"
-          - "langchain*"
-          - "langgraph*"
+          - "anthropic"
+          - "openai"
+          - "httpx2"
           - "fastmcp"
           - "mcp"
   - package-ecosystem: "github-actions"

@@ -12,16 +12,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from deepagents import SubAgent
-from langchain.agents.middleware import AgentMiddleware, InterruptOnConfig, TodoListMiddleware
-from langchain_core.language_models import BaseChatModel
-from langchain_core.tools import BaseTool
-
 from design_agent.brand.schema import BrandPack, load_brand_pack
 from design_agent.config import ModelSpec, Settings
 from design_agent.harness.cache import StaggerGate
 from design_agent.harness.durable import TranscriptCheckpointMiddleware
 from design_agent.harness.tasks import running
+from design_agent.kit.deep import SubAgent
+from design_agent.kit.middleware import AgentMiddleware, InterruptOnConfig, TodoListMiddleware
+from design_agent.kit.models import BaseChatModel
+from design_agent.kit.tools import BaseTool
 from design_agent.middleware.background import (
     BackgroundHelpers,
     BackgroundTaskMiddleware,
@@ -47,7 +46,6 @@ from design_agent.middleware.steering import (
     SteeringToolsMiddleware,
 )
 from design_agent.middleware.today import TodayMiddleware, ZoneFor, fixed_zone
-from design_agent.middleware.tracing import RunTagsMiddleware, TraceLinks
 from design_agent.middleware.watch_tools import WatchToolsMiddleware
 from design_agent.middleware.workspace import WorkspaceStagerMiddleware
 from design_agent.models.factory import Role, build_chat_model, resolve_model
@@ -59,7 +57,6 @@ from design_agent.subagents import build_subagents
 from design_agent.surfaces.slack.phrasebook import services
 from design_agent.tools.delivery import (
     DeliveryLedgerMiddleware,
-    UploadFallbackMiddleware,
     build_upload_tool,
 )
 from design_agent.tools.fetch import build_fetch_tool
@@ -68,7 +65,6 @@ from design_agent.tools.media import build_media_tools
 from design_agent.tools.paper import SERVER as PAPER
 from design_agent.tools.paper import PaperPolicy
 from design_agent.tools.projects import build_project_tools
-from design_agent.tools.traces import build_trace_tools
 from design_agent.workspace.manifest import Manifest, build_manifest
 
 SKILLS_ROOT = "/skills/"
@@ -121,7 +117,7 @@ def build_agent_components(
 
     `model` replaces the lead's model and `role_models` the models of `look` and the helpers (keyed
     by role or effort), for the scripted demo and the tests. `mcp_servers` are the declared MCP
-    servers (their tools reach the graph as `mcp_tools` locally, or from the platform on MDA).
+    servers (the caller loads their tools and passes them in as `mcp_tools`).
     `zone_for` decides whose timezone a turn's date note is in (default: `DESIGN_AGENT_TIMEZONE`).
     """
     root = runtime.project_root
@@ -134,7 +130,6 @@ def build_agent_components(
         *build_media_tools(settings, runtime.backend_for),
         *build_project_tools(runtime.backend_for),
         build_fetch_tool(runtime.backend_for),
-        *build_trace_tools(settings, runtime.backend_for, runtime.thread_id_for),
         *mcp_tools,
     ]
     if runtime.delivery is not None:
@@ -195,23 +190,8 @@ def build_agent_components(
         ),
         WorkspaceStagerMiddleware(manifest, runtime.staging_for),
         DeliveryLedgerMiddleware(runtime.backend_for, thread_id_for=runtime.thread_id_for),
-        *(
-            [
-                UploadFallbackMiddleware(
-                    build_upload_tool(
-                        adapter=runtime.fallback_delivery,
-                        backend_for=runtime.backend_for,
-                        thread_id_for=runtime.thread_id_for,
-                    ),
-                    thread_id_for=runtime.thread_id_for,
-                )
-            ]
-            if runtime.delivery is None and runtime.fallback_delivery is not None
-            else []
-        ),
         TodoListMiddleware(),
         TodayMiddleware(zone_for=zone_for or fixed_zone(settings.timezone)),
-        RunTagsMiddleware(surface=runtime.surface),
     ]
     slack = runtime.slack
     servers = services([s.name for s in mcp_servers])
@@ -225,11 +205,8 @@ def build_agent_components(
                 ThreadProgressMiddleware(slack, servers=servers, steering=settings.enable_steering)
             )
         if settings.enable_footer:
-            traces = TraceLinks(settings.trace_host) if settings.trace_host else None
             inbox = runtime.services.inbox if runtime.services is not None else None
-            middleware.append(
-                ReplyFooterMiddleware(slack, footers=Footers(traces=traces, inbox=inbox))
-            )
+            middleware.append(ReplyFooterMiddleware(slack, footers=Footers(inbox=inbox)))
     subagents: list[SubAgent] = []
     if runtime.services is not None:
         background = BackgroundTaskMiddleware(runtime.services)

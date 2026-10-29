@@ -6,38 +6,26 @@ and `servers_for_runtime` returns both:
     [servers.docs]
     url = "https://docs.example.com/mcp"
     transport = "http"                      # or "sse"; "stdio" with `command` instead of `url`
-    headers_env = { Authorization = "DOCS_MCP_AUTH" }   # local/self-hosted: header -> host env var
-    connection = "docs-token"               # MDA: a workspace connection (Agent Auth)
-    owner = "agent"                         # MDA: "agent" (one shared account) or "user" (each person's own)
+    headers_env = { Authorization = "DOCS_MCP_AUTH" }   # header -> host env var
     include_tools = ["search"]              # optional
     timeout = 30                            # seconds per request
     always_shown = false                    # keep its schemas bound instead of deferred
 
-A server's tools are named `{server}_{tool}` on every runtime, as Managed Deep Agents names them.
-Server names are lowercase letters and digits only, so a tool name splits on its first underscore
-without ambiguity (`tools/disclosure` relies on it).
+A server's tools are named `{server}_{tool}`. Server names are lowercase letters and digits only,
+so a tool name splits on its first underscore without ambiguity (`tools/disclosure` relies on it).
 
 Isolation:
-- Loading: locally and self-hosted, each server loads on its own with a deadline; one that fails is
-  reported and left out, the rest load. On MDA the declaration sets `throw_on_load_error=False`,
-  which warns and omits a server whose discovery fails.
-- Calling: a call that raises (MDA 0.9 lets invocation failures propagate) comes back as a tool
-  error naming the server (`McpToolErrorBoundary`), so one service failing never ends a run.
+- Loading: each server loads on its own with a deadline; one that fails is reported and left out,
+  the rest load.
+- Calling: a call that raises comes back as a tool error naming the server
+  (`McpToolErrorBoundary`), so one service failing never ends a run.
 
-Credentials stay on the host and out of artifacts. Locally and self-hosted, header values are read
-from the host environment when the server loads (a `bearer` comes from typed settings, masked). On
-MDA the declaration is compiled into the deployment, so header values are never put in it: a server
-that needs credentials names a workspace connection (`connection`), which MDA resolves at call time;
-one that names only `headers_env` or a `bearer` is left out on MDA with a warning. A connection is
-owned by the deployment (`owner = "agent"`: one account everyone's requests use) or by each person
-(`owner = "user"`: MDA's credential gate asks a person who has not connected yet to sign in, with a
-connect link, before the run starts). Per-person connections exist only on MDA, so local and
-self-hosted runtimes leave those servers out with a warning. Nothing reaches the sandbox.
+Credentials stay on the host and out of artifacts: header values are read from the host
+environment when the server loads (a `bearer` comes from typed settings, masked). Nothing reaches
+the sandbox.
 
-Stdio servers (`transport = "stdio"`, a local app's own CLI) run locally and self-hosted only: MDA's
-`define_mcp` speaks HTTP and SSE, so they are left out of its declaration with a warning. The child
-process gets the MCP SDK's short list of safe variables (home, path, shell, user), not the host's
-environment, so provider keys never reach it.
+Stdio servers (`transport = "stdio"`, a local app's own CLI) get the MCP SDK's short list of safe
+variables (home, path, shell, user), not the host's environment, so provider keys never reach it.
 """
 
 from __future__ import annotations
@@ -52,12 +40,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from langchain.agents.middleware import AgentMiddleware, ToolCallRequest
-from langchain_core.messages import ToolMessage
-from langchain_core.tools import BaseTool
-from langgraph.errors import GraphBubbleUp
-from langgraph.types import Command
 from pydantic import SecretStr
+
+from design_agent.kit.errors import GraphBubbleUp
+from design_agent.kit.messages import ToolMessage
+from design_agent.kit.middleware import AgentMiddleware, ToolCallRequest
+from design_agent.kit.tools import BaseTool
+from design_agent.kit.types import Command
 
 if TYPE_CHECKING:
     from design_agent.config import RuntimeName, Settings
@@ -65,7 +54,6 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 SERVER_NAME = re.compile(r"[a-z][a-z0-9]{0,30}")
-Owner = Literal["agent", "user"]
 CONFIG = Path("config") / "mcp.toml"
 
 
@@ -82,13 +70,10 @@ class McpServer:
     include_tools: tuple[str, ...] | None = None
     timeout: float = 30.0
     always_shown: bool = False
-    connection: str | None = None
-    owner: Owner = "agent"
-    """Who the connection belongs to on MDA: the deployment, or each person (module doc)."""
     command: tuple[str, ...] = ()
     """A stdio server's executable and arguments (`url` is empty)."""
     bearer: SecretStr | None = field(default=None, repr=False, compare=False)
-    """Sent as `Authorization: Bearer …` locally and self-hosted; MDA uses `connection` instead."""
+    """Sent as `Authorization: Bearer …`."""
 
     def headers(self, env: Mapping[str, str]) -> dict[str, str] | None:
         """The headers from the host environment; None when one it names is unset."""
@@ -122,12 +107,10 @@ def declared_servers(project_root: Path) -> list[McpServer]:
                 f"MCP server {name}: url must be https (or http://127.0.0.1 for a local app)"
             )
         include = entry.get("include_tools")
-        owner = entry.get("owner", "agent")
-        if owner not in ("agent", "user"):
-            raise McpConfigError(f"MCP server {name}: owner must be agent or user")
-        if owner == "user" and not entry.get("connection"):
+        if "connection" in entry or "owner" in entry:
             raise McpConfigError(
-                f'MCP server {name}: owner = "user" needs a connection for each person to sign in to'
+                f"MCP server {name}: `connection` and `owner` are not supported; send its "
+                "credentials with headers_env"
             )
         servers.append(
             McpServer(
@@ -141,8 +124,6 @@ def declared_servers(project_root: Path) -> list[McpServer]:
                 include_tools=tuple(str(t) for t in include) if include is not None else None,
                 timeout=float(entry.get("timeout", 30)),
                 always_shown=bool(entry.get("always_shown", False)),
-                connection=str(entry["connection"]) if entry.get("connection") else None,
-                owner=owner,
             )
         )
     return servers
@@ -171,14 +152,6 @@ def servers_for_runtime(
     from design_agent.tools.paper import SERVER, PaperConfigError, paper_server
 
     servers = declared_servers(project_root)
-    if runtime != "mda":
-        for server in servers:
-            if server.owner == "user":
-                _LOGGER.warning(
-                    "[mcp] %s left out: per-person connections need Managed Deep Agents",
-                    server.name,
-                )
-        servers = [server for server in servers if server.owner != "user"]
     if any(s.name == SERVER for s in servers):
         raise McpConfigError(
             f"config/mcp.toml declares `{SERVER}`; Paper is configured with PAPER_MODE instead"
@@ -205,10 +178,9 @@ def _transport(server: McpServer, env: Mapping[str, str]) -> Any:
 
 
 async def _load_one(server: McpServer, env: Mapping[str, str]) -> list[BaseTool]:
-    from langchain.mcp import MCPAdapter
+    from design_agent.kit.mcp import MCPAdapter
 
-    transport = _transport(server, env)
-    async with MCPAdapter(transport) as adapter:
+    async with MCPAdapter(_transport(server, env)) as adapter:
         tools = await adapter.list_tools()
     if server.include_tools is not None:
         tools = [t for t in tools if t.name in server.include_tools]
@@ -241,39 +213,6 @@ async def load_mcp_tools(
         else:
             load.tools.extend(result)
     return load
-
-
-def mda_declaration(servers: Sequence[McpServer]) -> Any:
-    """The `define_mcp` declaration for Managed Deep Agents (`tools/mcp.py`), or None."""
-    if not servers:
-        return None
-    from managed_deepagents import connections, define_mcp
-
-    declared: dict[str, Any] = {}
-    for server in servers:
-        if server.transport == "stdio":
-            _LOGGER.warning(
-                "[mcp] %s left out on MDA: it runs over stdio, which MDA does not serve",
-                server.name,
-            )
-            continue
-        if (server.headers_env or server.bearer is not None) and server.connection is None:
-            _LOGGER.warning(
-                "[mcp] %s left out on MDA: name a workspace connection for its credentials",
-                server.name,
-            )
-            continue
-        entry: dict[str, Any] = {
-            "transport": server.transport,
-            "url": server.url,
-            "timeout": server.timeout,
-        }
-        if server.connection is not None:
-            entry["connection"] = connections.get(server.connection, {"type": server.owner})
-        if server.include_tools is not None:
-            entry["include_tools"] = list(server.include_tools)
-        declared[server.name] = entry
-    return define_mcp(servers=declared, throw_on_load_error=False) if declared else None
 
 
 class McpToolErrorBoundary(AgentMiddleware[Any, Any, Any]):

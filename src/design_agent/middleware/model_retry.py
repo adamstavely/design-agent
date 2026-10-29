@@ -1,4 +1,4 @@
-"""Bounded recovery at the model boundary, on LangChain's `ModelRetryMiddleware`.
+"""Bounded recovery at the model boundary, on the kit's `ModelRetryMiddleware`.
 
 Provider SDK retries are off (`models/factory.py`), so this is the one retry. It retries what
 clears on its own: a connection that never completed, a 408/409/429, a 5xx, or the same failure
@@ -36,14 +36,15 @@ import anthropic
 import httpx
 import httpx2
 import openai
-from langchain.agents.middleware import (
+
+from design_agent.kit.errors import GraphBubbleUp
+from design_agent.kit.messages import AIMessage
+from design_agent.kit.middleware import (
     AgentMiddleware,
     ModelRequest,
     ModelResponse,
     ModelRetryMiddleware,
 )
-from langchain_core.messages import AIMessage
-from langgraph.errors import GraphBubbleUp
 
 _LOGGER = logging.getLogger(__name__)
 _RETRYABLE_STATUS_CODES = {408, 409, 429}

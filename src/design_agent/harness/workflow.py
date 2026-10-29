@@ -18,10 +18,10 @@ A pipeline is an async function `fn(ctx, **args)`, registered by name with a `Wo
 Every step is memoized in the store under its run, keyed by the sha256 of (brief, effort, schema,
 label). A run is re-run from the top after an answer, after a restart, or when the lead resumes it,
 and each step it already finished replays at once from the memo: only unfinished work runs again.
-The key is the step's content, not its position (LangGraph's `@task` replays by position), so adding
-or reordering steps keeps every unchanged step's result. A failed step is memoized too, so pipeline
-code that handles a failure takes the same path on every replay; resuming a failed or cancelled run
-clears those failures, and the steps run again.
+The key is the step's content, not its position, so adding or reordering steps keeps every unchanged
+step's result. A failed step is memoized too, so pipeline code that handles a failure takes the same
+path on every replay; resuming a failed or cancelled run clears those failures, and the steps run
+again.
 
 What happens is published on the bus with `source=<run id>` and `label=<pipeline name>`:
 - `TASK_STARTED` when the run starts (or resumes);
@@ -670,7 +670,7 @@ class WorkflowContext:
 class WorkflowRunner:
     """Runs registered pipelines as background tasks of this process (module doc).
 
-    `store` is a LangGraph `BaseStore` (the deployment's; `InMemoryStore` in tests). `runner` runs the
+    `store` is a kit `BaseStore` (the deployment's; `InMemoryStore` in tests). `runner` runs the
     helpers of any run that isn't given its own; a host can give each run its own, bound to the
     thread it belongs to. Events go to `bus`.
     """

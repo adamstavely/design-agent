@@ -17,11 +17,10 @@ import shlex
 from collections.abc import Callable
 from typing import Any, Protocol
 
-from deepagents.backends.protocol import ExecuteResponse
-from langchain.agents.middleware import AgentMiddleware, AgentState
-from langchain_core.messages import HumanMessage
-from langgraph.runtime import Runtime
-
+from design_agent.kit.deep.backends import ExecuteResponse
+from design_agent.kit.messages import HumanMessage
+from design_agent.kit.middleware import AgentMiddleware, AgentState
+from design_agent.kit.types import Runtime
 from design_agent.workspace.manifest import Manifest
 
 MARKER = "/workspace/.design-agent-ready"
@@ -45,7 +44,7 @@ class StagingTarget(Protocol):
 
 
 class BackendTarget:
-    """Stage through a Deep Agents sandbox backend (MDA's `runtime.backend`, LangSmith, host)."""
+    """Stage through a kit sandbox backend (the host sandbox's `LocalShellBackend`)."""
 
     def __init__(self, backend: Any) -> None:
         self._backend = backend

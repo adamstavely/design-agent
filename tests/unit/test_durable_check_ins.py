@@ -5,9 +5,8 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime, timedelta
 
-from langgraph.store.memory import InMemoryStore
-
 from design_agent.harness.protocols import WakeTarget
+from design_agent.kit.store import InMemoryStore
 from design_agent.runtime.waker.local import CHECK_INS, InProcessWaker
 
 

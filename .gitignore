@@ -19,7 +19,6 @@ workspace/out/
 workspace/state/
 
 # Build and tool output
-.mda/
 .venv/
 __pycache__/
 *.py[cod]

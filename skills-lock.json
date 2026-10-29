@@ -1,48 +1,5 @@
 {
-  "agent_skills": {
-    "deep-agents-core": {
-      "excluded": {},
-      "files": {
-        "SKILL.md": "1bfd3542b3c4b1d861d50cf24bc27267f8e1e1c72570d07583b8e9b39bdeacb1"
-      },
-      "upstream": "langchain-skills"
-    },
-    "deep-agents-memory": {
-      "excluded": {},
-      "files": {
-        "SKILL.md": "3549b750ca9625dc73e0c4bee87133f57fab374ba0202daa74a2d28c91cb3bf4"
-      },
-      "upstream": "langchain-skills"
-    },
-    "deep-agents-orchestration": {
-      "excluded": {},
-      "files": {
-        "SKILL.md": "76f4c5c9ed0773a0008e753422b3e2f5849b7748c18a9ab84e8e2d4dbbd66ebf"
-      },
-      "upstream": "langchain-skills"
-    },
-    "langsmith-dataset": {
-      "excluded": {},
-      "files": {
-        "SKILL.md": "427d48a04caa4ee2e59fcd281f78feef4283061d7d8a899655b463c4487735f3"
-      },
-      "upstream": "langsmith-skills"
-    },
-    "langsmith-evaluator": {
-      "excluded": {},
-      "files": {
-        "SKILL.md": "e8b2b2b575b9882aaef280478ffe2b2a5bdf0d6793e9b506e947bc63d1f71e33"
-      },
-      "upstream": "langsmith-skills"
-    },
-    "managed-deep-agents": {
-      "excluded": {},
-      "files": {
-        "SKILL.md": "fe1020c6727002aaade34ec23ca0ebab9c9b455b59a3ac0b50485059c566c200"
-      },
-      "upstream": "langchain-skills"
-    }
-  },
+  "agent_skills": {},
   "skills": {
     "embedded-captions": {
       "excluded": {
@@ -570,13 +527,6 @@
       },
       "upstream": "hyperframes"
     },
-    "langsmith-trace": {
-      "excluded": {},
-      "files": {
-        "SKILL.md": "6f16ba0969d0327ad4a097d97f30aa0b1daac6141a57ca8d9fd1dd6caa1d5b9e"
-      },
-      "upstream": "langsmith-skills"
-    },
     "media-use": {
       "excluded": {
         "audio/assets/sfx/chime.mp3": "Pixabay Content License audio, pending partner and legal review",
@@ -1041,20 +991,6 @@
       "license_file": "licenses/hyperframes-LICENSE.txt",
       "release": "v0.8.169",
       "repo": "heygen-com/hyperframes"
-    },
-    "langchain-skills": {
-      "commit": "16a992f09ab3ccfb642dd4f08d350d833d1990bf",
-      "license": "MIT",
-      "license_file": "licenses/langchain-skills-LICENSE.txt",
-      "release": null,
-      "repo": "langchain-ai/langchain-skills"
-    },
-    "langsmith-skills": {
-      "commit": "1fb52e836f2d9f8d95c9f0b27d796ab20dac34d1",
-      "license": "MIT",
-      "license_file": "licenses/langsmith-skills-LICENSE.txt",
-      "release": null,
-      "repo": "langchain-ai/langsmith-skills"
     }
   },
   "version": 2

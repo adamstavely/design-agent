@@ -2,11 +2,12 @@
 
 Skills load on demand; only their name and description stay in the system prompt, on every model
 call. Upstream HyperFrames skills carry long descriptions written for routing among themselves, and
-they are vendored unmodified. deepagents renders the list from `request.state["skills_metadata"]`
-inside this middleware, so on each model call this hands it a copy of that state in which each
-vendored skill's description is our one-line summary from `config/vendored-skills.toml`. Nothing
-is written to the thread's state, the SKILL.md files are untouched, and the swap is deterministic,
-so the cached prompt prefix stays byte-identical across calls.
+they are vendored unmodified. The kit's `SkillsMiddleware` renders the list from
+`request.state["skills_metadata"]` inside this middleware, so on each model call this hands it a
+copy of that state in which each vendored skill's description is our one-line summary from
+`config/vendored-skills.toml`. Nothing is written to the thread's state, the SKILL.md files are
+untouched, and the swap is deterministic, so the cached prompt prefix stays byte-identical across
+calls.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
 
-from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
+from design_agent.kit.middleware import AgentMiddleware, ModelRequest, ModelResponse
 
 
 def load_summaries(project_root: Path) -> dict[str, str]:

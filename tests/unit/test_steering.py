@@ -11,14 +11,14 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from deepagents import create_deep_agent
-from deepagents.backends import StateBackend
-from langchain.agents.middleware import AgentMiddleware
-from langchain_core.messages import AIMessage, HumanMessage
-from langchain_core.tools import tool
-from langgraph.checkpoint.memory import InMemorySaver
 
 from design_agent.harness import tasks
+from design_agent.kit.checkpoint import InMemorySaver
+from design_agent.kit.deep import create_deep_agent
+from design_agent.kit.deep.backends import StateBackend
+from design_agent.kit.messages import AIMessage, HumanMessage
+from design_agent.kit.middleware import AgentMiddleware
+from design_agent.kit.tools import tool
 from design_agent.middleware.background import CHECK_IN_MARK
 from design_agent.middleware.steering import (
     RUNNING_NOTE,

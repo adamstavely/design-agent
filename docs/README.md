@@ -8,11 +8,11 @@ which one fits.
 
 | Guide | Covers |
 | --- | --- |
-| [README](../README.md#get-started) | the five-minute demo and your first request |
+| [README](../README.md#quickstart) | the five-minute demo and your first request |
 | [CLI](cli.md) | every `design-agent` command |
-| [Models](models.md) | providers, the LangSmith Gateway, roles, effort, cost |
+| [Models](models.md) | providers, OpenAI-compatible endpoints, roles, effort, cost |
 | [Customization](customization.md) | brand packs, instructions, runtime skills, learning, MCP servers |
-| [Integrations](integrations.md) | Notion, Linear, GitHub, Figma and other MCP servers, per person or shared |
+| [Integrations](integrations.md) | Notion, Linear, GitHub, Figma and other MCP servers, with header tokens |
 | [Paper](partners/paper.md) | the shared canvas: local, bridged and off |
 | [HyperFrames](partners/hyperframes.md) | the video engine and its vendored skills |
 
@@ -20,9 +20,8 @@ which one fits.
 
 | Guide | Covers |
 | --- | --- |
-| [Deploy with MDA](deploy-mda.md) | publishing the sandbox, what ships, deploying, verifying |
 | [Self-hosting](self-hosting.md) | Docker Compose, the HTTP API, your own Slack app, security |
-| [Paper hosted worker](partners/paper-hosted-worker.md) | Paper Desktop on a server for a deployed agent |
+| [Paper hosted worker](partners/paper-hosted-worker.md) | Paper Desktop on a server for a self-hosted agent |
 | [Operations](../OPERATIONS.md) | configuration, the sandbox, costs, troubleshooting, upgrades, backups |
 
 ## Know it's working

@@ -8,8 +8,8 @@ from typing import Literal
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-RuntimeName = Literal["local", "mda", "self_hosted"]
-SandboxChoice = Literal["auto", "mda", "langsmith", "docker", "host"]
+RuntimeName = Literal["local", "self_hosted"]
+SandboxChoice = Literal["auto", "docker", "host"]
 PaperMode = Literal["off", "local", "bridged"]
 SlackTransport = Literal["socket_mode", "http"]
 CacheTtl = Literal["5m", "1h", "off"]
@@ -20,7 +20,7 @@ DEFAULT_SANDBOX_IMAGE = "design-agent-sandbox:local"
 
 
 class ModelSpec(BaseModel):
-    """A parsed `provider:model` string. `langsmith:provider/model` selects the optional gateway."""
+    """A parsed `provider:model` string."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -33,20 +33,6 @@ class ModelSpec(BaseModel):
         if not sep or not provider.strip() or not model.strip():
             raise ValueError(f"{setting} must look like 'provider:model', got {raw!r}")
         return cls(provider=provider.strip().lower(), model=model.strip())
-
-    @property
-    def via_gateway(self) -> bool:
-        return self.provider == "langsmith"
-
-    @property
-    def upstream(self) -> ModelSpec:
-        """The provider and model behind a gateway spec (`langsmith:anthropic/x` -> anthropic:x)."""
-        if not self.via_gateway:
-            return self
-        provider, sep, model = self.model.partition("/")
-        if not sep or not provider or not model:
-            raise ValueError("a gateway model must look like 'langsmith:provider/model'")
-        return ModelSpec(provider=provider.lower(), model=model)
 
     def __str__(self) -> str:
         return f"{self.provider}:{self.model}"
@@ -96,24 +82,14 @@ class Settings(BaseSettings):
     google_api_key: SecretStr | None = Field(
         default=None, validation_alias=_alias("GOOGLE_API_KEY")
     )
-    langsmith_api_key: SecretStr | None = Field(
-        default=None, validation_alias=_alias("LANGSMITH_API_KEY")
-    )
-    langsmith_gateway_api_key: SecretStr | None = Field(
-        default=None, validation_alias=_alias("LANGSMITH_GATEWAY_API_KEY")
-    )
 
     # Runtime and the designer's computer
     runtime: RuntimeName = "local"
     sandbox: SandboxChoice = "auto"
-    sandbox_snapshot: str | None = None
     sandbox_image: str = DEFAULT_SANDBOX_IMAGE
     sandbox_vcpus: int = Field(default=8, ge=1, le=64)
     sandbox_mem_gib: int = Field(default=16, ge=1, le=256)
-    sandbox_fs_gib: int = Field(default=16, ge=2, le=512)
     sandbox_idle_ttl_seconds: int = Field(default=600, ge=60)
-    sandbox_egress_allow: str = ""
-    """Comma-separated hosts the sandbox may reach at run time; everything else is denied."""
     max_parallel_builders: int = Field(default=3, ge=1, le=16)
     job_budget_usd: float | None = Field(default=None, gt=0)
     workspace_root: Path = Path("workspace")
@@ -156,13 +132,7 @@ class Settings(BaseSettings):
     enable_progress: bool = True
     enable_footer: bool = True
     enable_steering: bool = True
-    trace_host: str | None = None
-    """LangSmith UI host for the footer's trace link (for example https://smith.langchain.com).
-    Unset, the footer has no link: a trace URL names the workspace, project and run."""
     enable_learning: bool = True
-    enable_traces: bool = True
-    """`list_traces` and `read_trace`: the agent reads every thread's traces in its own LangSmith
-    project with the host's credentials. Turn off where people must not see each other's requests."""
     enable_tool_clearing: bool = False
     """Server-side clearing of old tool results in helpers' requests (Anthropic only)."""
     timezone: str = "UTC"
@@ -170,21 +140,9 @@ class Settings(BaseSettings):
     mcp_max_tools: int = Field(default=8, ge=1, le=64)
     """For models without native tool search: MCP tools a selector may expose per call."""
 
-    # MDA Slack appearance
-    # MDA's own rule for a Slack app name; checked here so a bad name fails before a deploy does.
-    slack_name: str = Field(
-        default="Content Studio",
-        max_length=35,
-        pattern=r"^[A-Za-z0-9_.](?:[A-Za-z0-9 _.\-]*[A-Za-z0-9_.])?$",
-    )
-    slack_description: str = Field(
-        default="On-brand design and motion from a chat thread.", max_length=139
-    )
-    slack_background_color: str | None = None
-    slack_trigger_on_all_messages: bool = False
-    slack_allow_bot_triggers: bool = False
-
     # Self-hosted
+    slack_trigger_on_all_messages: bool = False
+    """Answer every message in channels the app is in, not only mentions."""
     slack_bot_token: SecretStr | None = Field(
         default=None, validation_alias=_alias("SLACK_BOT_TOKEN")
     )
@@ -213,9 +171,6 @@ class Settings(BaseSettings):
         "learning_model",
         "model_base_url",
         "model_api_key_env",
-        "sandbox_snapshot",
-        "slack_background_color",
-        "trace_host",
         "paper_mcp_url",
         "paper_brand_file_id",
         "paper_drafts_file_id",
@@ -224,8 +179,6 @@ class Settings(BaseSettings):
         "anthropic_api_key",
         "openai_api_key",
         "google_api_key",
-        "langsmith_api_key",
-        "langsmith_gateway_api_key",
         "elevenlabs_api_key",
         "groq_api_key",
         "exa_api_key",
@@ -252,9 +205,6 @@ class Settings(BaseSettings):
         if raw is None:
             return self.lead_model()
         return ModelSpec.parse(raw, setting=f"DESIGN_AGENT_{role.upper()}_MODEL")
-
-    def egress_allowlist(self) -> tuple[str, ...]:
-        return tuple(h.strip() for h in self.sandbox_egress_allow.split(",") if h.strip())
 
     def api_token_map(self) -> dict[str, str]:
         """`token:caller,token:caller` as a lookup. Values stay in memory only."""

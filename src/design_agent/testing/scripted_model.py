@@ -7,13 +7,15 @@ import uuid
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from langchain_core.callbacks import CallbackManagerForLLMRun
-from langchain_core.language_models import BaseChatModel, LanguageModelInput
-from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
-from langchain_core.outputs import ChatGeneration, ChatResult
-from langchain_core.runnables import Runnable
-from langchain_core.tools import BaseTool
-from langchain_core.utils.function_calling import convert_to_openai_tool
+from design_agent.kit.messages import AIMessage, BaseMessage, ToolMessage
+from design_agent.kit.models import (
+    BaseChatModel,
+    BoundModel,
+    CallbackManagerForLLMRun,
+    ChatGeneration,
+    ChatResult,
+)
+from design_agent.kit.tools import BaseTool, convert_to_openai_tool
 
 Step = Callable[[Sequence[BaseMessage]], AIMessage]
 
@@ -94,7 +96,7 @@ class ScriptedChatModel(BaseChatModel):
         *,
         tool_choice: str | None = None,  # noqa: ARG002 - provider signature
         **kwargs: Any,
-    ) -> Runnable[LanguageModelInput, AIMessage]:
+    ) -> BoundModel:
         formatted = [t if isinstance(t, dict) else convert_to_openai_tool(t) for t in tools]
         self.bound_tool_batches.append(formatted)
         return self.bind(tools=formatted, **kwargs)

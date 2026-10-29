@@ -1,14 +1,8 @@
 """Steering: a person's follow-up while their job runs reaches the running work.
 
-What Managed Deep Agents 0.9.3 does with a second Slack message (its public Trigger ingress):
-every message becomes a run on the LangGraph thread of its Slack thread (`uuid5` of the source
-thread key) with `multitask_strategy="enqueue"`. A follow-up in the same Slack thread therefore
-waits behind the run at work and starts when it ends; nothing public lets a run take input
-mid-flight, interrupt the run at work, or end a run without a post (an empty reply reposts the
-newest earlier answer). A top-level DM message is a source thread of its own: its run starts at
-once, beside the run at work, with neither its history nor its sandbox.
-
-So steering happens in two places, both on public APIs:
+A second Slack message in a thread whose run is at work becomes a run of its own, queued behind
+the one at work on the same thread: nothing lets a run take input mid-flight or be interrupted
+from outside. So steering happens in two places:
 
 - **Background helpers** (the usual case: the lead hands work off and its turn ends, so the
   follow-up starts a lead turn at once). `SteeringToolsMiddleware` gives the lead `steer_task`,
@@ -19,11 +13,11 @@ So steering happens in two places, both on public APIs:
   process; a helper a restart killed is resumed from its transcript without unread ones.
 - **The lead's own busy run** in a Slack thread. `LeadSteeringMiddleware` reads the thread before
   each model call (one shared read per thread per `followups.TTL_SECONDS`) and adds each
-  follow-up as the person's message under a stable id (`steer_id`). The run MDA queued for that
+  follow-up as the person's message under a stable id (`steer_id`). The run queued for that
   message then finds its id in the history and ends at once with one line, without a model call.
   A follow-up leading with "stop" (or cancel, abort, never mind) ends the run at its next step,
   and its own queued run answers it as a new request. Files a follow-up brings are fetched on the
-  host into `/workspace/attachments/` under MDA's own naming.
+  host into `/workspace/attachments/`.
 
 A failed Slack read leaves the run unsteered; nothing here costs a run its work.
 """
@@ -37,13 +31,11 @@ from collections import defaultdict
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from deepagents.backends.protocol import BackendProtocol
-from langchain.agents.middleware import AgentMiddleware, AgentState, hook_config
-from langchain.tools import ToolRuntime
-from langchain_core.messages import AIMessage, HumanMessage
-from langchain_core.tools import StructuredTool
-
 from design_agent.harness import tasks
+from design_agent.kit.deep.backends import BackendProtocol
+from design_agent.kit.messages import AIMessage, HumanMessage
+from design_agent.kit.middleware import AgentMiddleware, AgentState, hook_config
+from design_agent.kit.tools import StructuredTool, ToolRuntime
 from design_agent.middleware.background import CHECK_IN_MARK
 from design_agent.middleware.quiet import SENTINEL_MARK
 from design_agent.runtime.waker import wake_key

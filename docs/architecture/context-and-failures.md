@@ -5,7 +5,8 @@ ends a run silently. Code: `src/design_agent/middleware/guards.py` and the modul
 
 ## What the model sees
 
-The always-loaded prompt is `instructions.md`, deepagents' tool notes, and one line per skill.
+The always-loaded prompt is `instructions.md` and one line per skill (the runtime's `## Skills`
+list, `kit/deep/skills.py`).
 Workflows live in skills, brand facts in the brand pack, and both are opened when a job needs them.
 
 Measured on the real graph with the sample brand (`tests/contract/test_prompt_budget.py`, which
@@ -17,14 +18,14 @@ fails if either number passes its ceiling):
 | Tool schemas (39 tools, no MCP) | 40,288 | ~11,500 | 12,000 |
 
 The skill list was 15,551 characters before vendored skills got one-line summaries. Upstream
-HyperFrames and LangSmith skills are vendored unmodified, with descriptions written for other
-setups; `SkillListMiddleware` hands deepagents a copy of the thread's skill metadata in which
+HyperFrames skills are vendored unmodified, with descriptions written for other setups;
+`SkillListMiddleware` hands the runtime's skills list a copy of the thread's skill metadata in which
 each vendored skill's description is its line from `config/vendored-skills.toml`. Nothing is written
 to the thread, and `tests/unit/test_guards.py` keeps the summaries equal to
 `skills-lock.json`.
 
-deepagents 0.7.28 appends no framework prompt for the registry's models; the budget test fails if
-anything but `instructions.md` leads the system prompt.
+The runtime appends no framework prompt of its own besides the skills list; the budget test fails
+if anything but `instructions.md` leads the system prompt.
 
 ## Tool disclosure
 
@@ -43,7 +44,8 @@ Selection is not authorization: approval and policy act on a call's name, deferr
 
 - Stable prefix: the system prompt does not change while work runs. The date and anything that
   happened in the background arrive as messages, written once into history.
-- deepagents installs Anthropic prompt caching with a five-minute TTL on every agent. The lead's
+- The runtime installs Anthropic prompt caching with a five-minute TTL on every agent
+  (`kit/deep/housekeeping.py`). The lead's
   thread is read again minutes to hours apart, so `CachedChatAnthropic` sets every breakpoint to
   the role's TTL: `DESIGN_AGENT_CACHE_TTL` (lead, `1h`) and `DESIGN_AGENT_HELPER_CACHE_TTL` (`5m`).
 - Fan-out stagger: helpers started in one wave over the same prefix wait (up to 5 s) for the first
@@ -51,7 +53,9 @@ Selection is not authorization: approval and policy act on a call's name, deferr
 - Server-side clearing of old tool results in helpers' requests (`clear_tool_uses_20250919`) is
   available behind `DESIGN_AGENT_ENABLE_TOOL_CLEARING` and off until measured: each clear breaks
   the cached prefix, so it waits for a 120k-token prompt and clears at least 20k tokens.
-- Large tool results go to files (deepagents' eviction at 20k tokens stays on).
+- A long conversation is compacted: past 85% of the model's context window, older turns become
+  one summary message, and the full transcript is saved under `/workspace/.renders/` in the sandbox
+  (`kit/deep/housekeeping.py`).
 
 ## Cost
 
@@ -71,7 +75,7 @@ person before starting more work; nothing is stopped in code.
 | Graph step limit near | The turn wraps up with tools off: what is finished, with paths, and the next step, marked partial in `response_metadata`. |
 | A synchronous `task` subagent raises | The lead gets a tool error naming the exception class, and can do the step itself. |
 | `upload_files` raises | A tool error saying the files were not sent; never claimed as sent. |
-| An MCP server fails to load | Left out with a warning; the rest load (`throw_on_load_error=False` on MDA). |
+| An MCP server fails to load | Left out with a warning; the rest load. |
 | An MCP call raises | A tool error naming the server; other tools keep working. |
 | History names a tool that is gone | References are dropped per call; if the provider still refuses, one deeper repair folds the old calls into text notes and retries once. |
 | Mislabeled or oversized image | Its type is read from the bytes and it is resized to a 1500 px long edge before the call; undecodable bytes drop that block only. |

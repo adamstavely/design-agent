@@ -38,15 +38,15 @@ import logging
 from collections import OrderedDict
 from collections.abc import Awaitable, Callable, Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any
 
 import anthropic
 import openai
-from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
-from langchain_core.exceptions import ContextOverflowError, ModelInvalidRequestError
-from langchain_core.messages import AIMessage, AnyMessage, BaseMessage, SystemMessage, ToolMessage
-from langgraph.config import get_config
 
+from design_agent.kit.config import get_config
+from design_agent.kit.errors import ContextOverflowError, ModelInvalidRequestError
+from design_agent.kit.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
+from design_agent.kit.middleware import AgentMiddleware, ModelRequest, ModelResponse
 from design_agent.middleware.model_retry import exception_chain
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ _NO_REFERENCES_TEXT = "No matching tools are available."
 # unanswered function call. A bad tool schema (`tools.N...`) or a policy refusal matches none.
 _HISTORY_ERROR_MARKERS = ("messages.", "tool reference", "tool_use", "tool_result", "input[")
 #: How many threads' "repair up front" flags one process remembers. The graph is compiled once
-#: per process in MDA, so the flag is scoped by thread, not by middleware instance.
+#: per process, so the flag is scoped by thread, not by middleware instance.
 _REPAIRING_THREADS = 512
 
 
@@ -92,7 +92,7 @@ class HistoryReport:
 
 
 def available_tool_names(tools: Iterable[Any]) -> frozenset[str]:
-    """Every tool name the request carries, bound or deferred, in LangChain or provider form."""
+    """Every tool name the request carries, bound or deferred, as a tool object or provider dict."""
     names: set[str] = set()
     for tool in tools:
         if isinstance(tool, dict):
@@ -343,7 +343,7 @@ def _history_rejection(error: BaseException) -> bool:
 
 
 def _thread_key() -> str | None:
-    """The thread this call belongs to, from the ambient LangGraph config; None outside a graph."""
+    """The thread this call belongs to, from the ambient run config; None outside a run."""
     try:
         configurable = get_config().get("configurable") or {}
     except RuntimeError:
@@ -356,7 +356,7 @@ class ToolHistoryMiddleware(AgentMiddleware):
     """Send a history the provider accepts; repair and retry once if it still refuses.
 
     Register it innermost, after anything that changes the tool list, so it compares history
-    with the final tool list. MDA compiles the graph once per process, so the "repair already
+    with the final tool list. The graph is compiled once per process, so the "repair already
     needed" flag is kept per thread (bounded): a thread that needed the deep repair gets it up
     front on its later calls instead of a 400 on each, and no other thread pays for it.
     """
@@ -392,7 +392,7 @@ class ToolHistoryMiddleware(AgentMiddleware):
             len(report.folded_calls),
             sorted(set(report.folded_calls))[:10],
         )
-        return request.override(messages=cast("list[AnyMessage]", messages))
+        return request.override(messages=messages)
 
     async def awrap_model_call(
         self,

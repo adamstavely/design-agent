@@ -4,9 +4,9 @@ Every tool stays registered with the graph; this changes what the model sees on 
 what it may run. Approval (`interrupt_on`) and policy act on a tool call's name, not its schema, so
 a deferred tool is gated exactly as a bound one is. Selection is not authorization.
 
-The rule is evaluated per request against `request.tools`, because Managed Deep Agents appends
-connector tools at runtime: a tool named `{server}_{tool}` for a declared MCP server
-(`tools/mcp.py`) is disclosed on demand; host tools and the framework's own are always bound.
+The rule is evaluated per request against `request.tools`, the list the model is sent: a tool
+named `{server}_{tool}` for a declared MCP server (`tools/mcp.py`) is disclosed on demand; host
+tools and the kit's own are always bound.
 
 - Models with provider-native tool search (verified Anthropic and OpenAI models in the capability
   registry): MCP tools are marked `defer_loading` and the provider's search tool is added. Search
@@ -25,11 +25,13 @@ import re
 from collections.abc import Collection, Sequence
 from typing import Any
 
-from langchain.agents.middleware import LLMToolSelectorMiddleware, ProviderToolSearchMiddleware
-from langchain.agents.middleware.types import ModelRequest
-from langchain_core.language_models import BaseChatModel
-from langchain_core.tools import BaseTool
-
+from design_agent.kit.middleware import (
+    LLMToolSelectorMiddleware,
+    ModelRequest,
+    ProviderToolSearchMiddleware,
+)
+from design_agent.kit.models import BaseChatModel
+from design_agent.kit.tools import BaseTool
 from design_agent.tools.mcp import server_of
 
 #: The keys Anthropic accepts back on a `tool_search_tool_result` block. The streamed block carries

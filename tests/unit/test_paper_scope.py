@@ -14,11 +14,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from langchain.agents import create_agent
-from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
-from langchain_core.tools import BaseTool, StructuredTool, tool
-from langgraph.checkpoint.memory import InMemorySaver
 
+from design_agent.kit.agent import create_agent
+from design_agent.kit.checkpoint import InMemorySaver
+from design_agent.kit.messages import AIMessage, SystemMessage, ToolMessage
+from design_agent.kit.tools import BaseTool, StructuredTool, tool
 from design_agent.middleware.paper_scope import NEEDS_PROJECT, PaperScopeMiddleware
 from design_agent.testing.fakes import FolderSandbox
 from design_agent.testing.scripted_model import ScriptedChatModel, reply, tool_call

@@ -12,9 +12,6 @@ the attention rule treats every render alike.
 thread's sandbox, with its output in a log and its exit code in `<log>.exit`. Progress comes from a
 parser reading the log (`harness.watch.parser_for`; `hyperframes` for `hyperframes render`, the
 heartbeat parser by default); the exit code is the verdict.
-
-Deep Agents has no outside-job primitive; upstream, this would be a task type beside background
-subagents: submit, poll (or a webhook) and cancel, emitting the same events.
 """
 
 from __future__ import annotations

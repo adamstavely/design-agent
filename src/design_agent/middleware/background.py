@@ -3,12 +3,12 @@
 The primitives live in `design_agent.harness` (docs/architecture/orchestration.md). This module is
 the agent's side of them:
 
-- **`start_task`** runs one of the declared subagents through the `task` tool Deep Agents built
-  for this run, detached from the turn. It returns at once, so the lead replies with an ETA and
-  its turn ends. The helper's config is the lead's minus LangGraph's per-run internals, so it works
-  in the thread's own sandbox with the thread's files.
-- **The lead is woken** through the runtime's `Waker` (MDA one-time schedules on the thread; the
-  self-hosted and local runners queue a run in-process) when a helper finishes, fails or was
+- **`start_task`** runs one of the declared subagents through the `task` tool the kit built for
+  this run, detached from the turn. It returns at once, so the lead replies with an ETA and its
+  turn ends. The helper's config is the lead's minus its per-run internals, so it works in the
+  thread's own sandbox with the thread's files.
+- **The lead is woken** through the runtime's `Waker` (the self-hosted and local runners queue a
+  run in-process) when a helper finishes, fails or was
   interrupted by a restart, when a watched job fails, stalls or finishes, and when a check-in comes
   due. A helper's `report_progress` note waits for the lead's next turn unless it is urgent or the
   lead asked to follow that task closely. A reply of exactly `[quiet]` posts nothing, or one
@@ -40,16 +40,7 @@ from collections import OrderedDict
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import Annotated, Any, Literal, NotRequired, cast
-
-from langchain.agents.middleware import AgentMiddleware, AgentState, ModelRequest, ModelResponse
-from langchain.tools import ToolRuntime
-from langchain_core.messages import HumanMessage, ToolMessage
-from langchain_core.runnables import RunnableConfig
-from langchain_core.runnables.config import var_child_runnable_config
-from langchain_core.tools import BaseTool, StructuredTool
-from langgraph.config import get_config
-from langgraph.types import Command
+from typing import Annotated, Any, Literal, NotRequired
 
 from design_agent.harness import durable, ledger, notices, tasks
 from design_agent.harness import events as ev
@@ -57,6 +48,11 @@ from design_agent.harness.inbox import Inbox
 from design_agent.harness.meter import CURRENT_TASK_ID
 from design_agent.harness.protocols import HelperResult, Waker, WakeTarget
 from design_agent.harness.tasks import REGISTRY, TaskRecord
+from design_agent.kit.config import RunnableConfig, get_config, var_child_runnable_config
+from design_agent.kit.messages import HumanMessage, ToolMessage
+from design_agent.kit.middleware import AgentMiddleware, AgentState, ModelRequest, ModelResponse
+from design_agent.kit.tools import BaseTool, StructuredTool, ToolRuntime
+from design_agent.kit.types import Command
 from design_agent.middleware.quiet import is_watchdog_turn
 
 _LOGGER = logging.getLogger(__name__)
@@ -84,7 +80,7 @@ CHECK_IN_MARK = "<check-in"
 
 CaptureTarget = Callable[[Any], Awaitable[WakeTarget | None]]
 #: Told when a thread gains or loses background work (`active`), so an adapter can keep a
-#: restart watchdog such as MDA's sentinel check-in.
+#: restart watchdog.
 Watchdog = Callable[[WakeTarget, bool], Awaitable[None]]
 #: Called at the start of every lead turn with the runtime and messages (a waker confirming that
 #: the turn it scheduled started).
@@ -222,7 +218,7 @@ def _field(value: object, key: str) -> Any:
 
 
 def detached_config(config: Mapping[str, Any]) -> RunnableConfig:
-    """The lead run's config without LangGraph's per-run internals or callbacks: a helper must not
+    """The lead run's config without its per-run checkpoint keys or callbacks: a helper must not
     write checkpoints into a run that ended. The thread id that names the sandbox stays."""
     configurable = {
         key: value
@@ -233,7 +229,7 @@ def detached_config(config: Mapping[str, Any]) -> RunnableConfig:
         key: value for key, value in config.items() if key not in {"configurable", "callbacks"}
     }
     detached["configurable"] = configurable
-    return cast("RunnableConfig", detached)
+    return detached
 
 
 def detached_runtime(runtime: Any, task_id: str) -> ToolRuntime:
@@ -271,7 +267,7 @@ def _thread_of(runtime: Any) -> str:
 
 
 def _report(result: object) -> str:
-    """The subagent's final message, from the `Command` Deep Agents' `task` returns."""
+    """The subagent's final message, from the `Command` the kit's `task` returns."""
     update = getattr(result, "update", None)
     messages = update.get("messages") if isinstance(update, Mapping) else None
     if isinstance(messages, list) and messages:
@@ -682,7 +678,7 @@ class BackgroundTaskMiddleware(AgentMiddleware[BackgroundState, Any, Any]):
         request: ModelRequest[Any],
         handler: Callable[[ModelRequest[Any]], Awaitable[ModelResponse[Any]]],
     ) -> ModelResponse[Any]:
-        # The compiled subagents live in the closure of the `task` tool Deep Agents built for this
+        # The compiled subagents live in the closure of the `task` tool the kit built for this
         # run; start_task runs them through it, so it is kept under this run's key. Nothing is
         # added to the system prompt: it stays byte-identical while work runs.
         for candidate in request.tools or []:

@@ -8,13 +8,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 from PIL import Image
 
 from design_agent.config import Settings
 from design_agent.evals import graders, runner
 from design_agent.evals.tasks import Task, load_tasks
 from design_agent.evals.trace import Trace
+from design_agent.kit.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 from design_agent.testing.fakes import folder_binding
 from design_agent.testing.scripted_model import RespondingChatModel, reply, tool_call
 
@@ -239,7 +239,7 @@ def test_questions_in_markdown_and_inline_markup_in_copy_are_read_as_written() -
 
 
 def test_only_woken_turns_that_deliver_nothing_are_check_ins() -> None:
-    from langchain_core.messages import AIMessage, HumanMessage
+    from design_agent.kit.messages import AIMessage, HumanMessage
 
     notice = "[Runtime notice, not from the user] The wake-up you scheduled."
     upload = {"name": "upload_files", "args": {"paths": ["/workspace/out/clip.mp4"]}, "id": "u1"}

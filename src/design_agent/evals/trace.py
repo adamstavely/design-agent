@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+from design_agent.kit.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 
 
 @dataclass(frozen=True)
@@ -24,7 +24,7 @@ class Call:
 
 
 #: How a turn the person did not start opens: the inbox's notice (`harness.notices`), and the
-#: marker MDA's waker adds (`runtime.waker`).
+#: wake-up marker (`runtime.waker.wake_marker`).
 WOKEN = re.compile(r"^\[Runtime notice, not from the user\]|<wake key=")
 
 

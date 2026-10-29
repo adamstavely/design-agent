@@ -7,9 +7,8 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
-from langchain_core.messages import AIMessage, BaseMessage, SystemMessage
-
 from design_agent.config import Settings
+from design_agent.kit.messages import AIMessage, BaseMessage, SystemMessage
 from design_agent.runtime.local import build_local_runtime
 from design_agent.testing.fakes import folder_binding
 from design_agent.testing.scripted_model import ScriptedChatModel, reply

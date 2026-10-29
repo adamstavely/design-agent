@@ -16,9 +16,8 @@ from typing import Any
 from urllib.parse import urljoin, urlsplit
 
 import httpx
-from langchain.tools import ToolRuntime
-from langchain_core.tools import BaseTool, StructuredTool
 
+from design_agent.kit.tools import BaseTool, StructuredTool, ToolRuntime
 from design_agent.tools.files import (
     BackendFor,
     WorkspaceError,

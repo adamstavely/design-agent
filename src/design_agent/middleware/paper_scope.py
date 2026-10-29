@@ -35,16 +35,15 @@ from collections.abc import Awaitable, Callable, Sequence
 from pathlib import Path
 from typing import Any
 
-from langchain.agents.middleware import (
+from design_agent.kit.messages import SystemMessage, ToolCall, ToolMessage
+from design_agent.kit.middleware import (
     AgentMiddleware,
     ModelRequest,
     ModelResponse,
     ToolCallRequest,
 )
-from langchain_core.messages import SystemMessage, ToolCall, ToolMessage
-from langchain_core.tools import BaseTool
-from langgraph.types import Command
-
+from design_agent.kit.tools import BaseTool
+from design_agent.kit.types import Command
 from design_agent.tools.files import BackendFor, WorkspaceError, read_bytes, write_bytes
 from design_agent.tools.paper import (
     EXPORT_TOOLS,

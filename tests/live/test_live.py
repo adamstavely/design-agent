@@ -2,8 +2,7 @@
 
     DESIGN_AGENT_LIVE_TESTS=1 uv run pytest -q -m live tests/live
 
-Each test needs its own key and skips without it. They cost cents, except the LangSmith sandbox
-check, which bills a few minutes of sandbox time.
+Each test needs its own key and skips without it. They cost cents.
 """
 
 from __future__ import annotations
@@ -13,9 +12,9 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
-from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
 
 from design_agent.config import Settings
+from design_agent.kit.messages import AIMessage, BaseMessage, ToolMessage
 from design_agent.models.factory import build_chat_model
 from design_agent.runtime.local import build_local_runtime
 from design_agent.testing.fakes import folder_binding
@@ -37,12 +36,12 @@ async def test_the_configured_model_answers() -> None:
         "anthropic": "ANTHROPIC_API_KEY",
         "openai": "OPENAI_API_KEY",
         "google_genai": "GOOGLE_API_KEY",
-    }.get(settings.lead_model().upstream.provider)
+    }.get(settings.lead_model().provider)
     if key:
         needs(key)
     model = (
         build_chat_model(settings, "lead", effort="low")
-        if settings.lead_model().upstream.provider == "anthropic"
+        if settings.lead_model().provider == "anthropic"
         else build_chat_model(settings, "lead")
     )
     answer = await model.ainvoke("Reply with the single word OK.")
@@ -99,10 +98,32 @@ async def test_voiceover_writes_audio(tmp_path: Path) -> None:
     assert (tmp_path / "sb/workspace/projects/live/vo.mp3").stat().st_size > 1000, result
 
 
-def test_a_langsmith_sandbox_from_the_published_snapshot_passes_the_probe() -> None:
-    needs("LANGSMITH_API_KEY", "DESIGN_AGENT_SANDBOX_SNAPSHOT")
-    from design_agent.runtime.sandbox.langsmith import LangSmithSandboxPool
+@pytest.mark.parametrize(
+    ("spec", "key"),
+    [("anthropic:claude-opus-5-5", "ANTHROPIC_API_KEY"), ("openai:gpt-5.5", "OPENAI_API_KEY")],
+)
+async def test_a_real_model_drives_the_agent_loop_through_a_tool(
+    tmp_path: Path, spec: str, key: str
+) -> None:
+    """The provider adapter end to end: a tool call, its result sent back, and a final answer."""
+    needs(key)
+    from design_agent.kit.deep import create_deep_agent
+    from design_agent.kit.models import init_chat_model
 
-    backend = LangSmithSandboxPool(Settings()).backend("live-probe")  # idles out on its own TTL
-    result = backend.execute("/opt/design-agent/probe/probe.sh", timeout=900)
-    assert result.exit_code == 0, result.output[-2000:]
+    model = init_chat_model(spec, max_retries=2)
+    sandbox = folder_binding(tmp_path / "sb", ROOT).sandbox
+    agent = create_deep_agent(model, backend=sandbox, system_prompt="Be brief.")
+    result = await agent.ainvoke(
+        {
+            "messages": [
+                (
+                    "user",
+                    "Use write_file to create /workspace/projects/live/hi.txt containing exactly "
+                    "the word hello, then reply with the single word done.",
+                )
+            ]
+        },
+        {"configurable": {"thread_id": "live"}},
+    )
+    assert (tmp_path / "sb/workspace/projects/live/hi.txt").read_text().strip() == "hello"
+    assert "done" in result["messages"][-1].text.lower()

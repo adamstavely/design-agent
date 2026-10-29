@@ -10,8 +10,7 @@ nothing. A record whose heartbeat is older than `STALE_SECONDS` belongs to a pro
 Check-ins the lead scheduled (`harness.wakeups`) live here too, so one a restart swallowed fires
 late rather than never.
 
-This is the lease, heartbeat and sweeper pattern durable-execution engines use. Deep Agents has
-no equivalent for in-process background subagents, which a restart loses.
+This is the lease, heartbeat and sweeper pattern durable-execution engines use.
 """
 
 from __future__ import annotations

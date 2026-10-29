@@ -1,8 +1,7 @@
 """Live progress in the Slack thread: one message per run, a card per step, and one per helper.
 
-The answer stays the platform's own message (MDA posts a run's final reply; the self-hosted
-adapter posts it itself), so this streams the work and only the work
-(`surfaces/slack/stream.py`):
+The answer stays its own message (the Slack adapter posts a run's final reply itself), so this
+streams the work and only the work (`surfaces/slack/stream.py`):
 
 - **`ThreadProgressMiddleware`** (the lead) opens the run's message at its first step. Each tool
   call is a card, "doing" while it runs and "done" (or failed) after; the plan (`write_todos`)
@@ -28,7 +27,7 @@ While a long step runs, the lead's heartbeat also reads the thread: a follow-up 
 gets an `eyes` reaction and one line saying it will be worked in at the next step (with steering
 on, `middleware/steering.py`) or picked up once this run is done.
 
-Streams are keyed by the Slack thread, never the run's LangGraph config: every hook names the
+Streams are keyed by the Slack thread, never the run's config: every hook names the
 same thread. Slack failures are swallowed with a class-name log (`SlackProgress`).
 
 Ordering: put these after `QuietReplyMiddleware`, so their `after_agent` sees a `[quiet]` reply
@@ -45,13 +44,17 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from langchain.agents.middleware import AgentMiddleware, AgentState, ModelRequest, ModelResponse
-from langchain.agents.middleware.types import ToolCallRequest
-from langchain_core.messages import AIMessage, ToolMessage
-from langgraph.types import Command
-
 from design_agent.harness import tasks
 from design_agent.harness.notices import should_post
+from design_agent.kit.messages import AIMessage, ToolMessage
+from design_agent.kit.middleware import (
+    AgentMiddleware,
+    AgentState,
+    ModelRequest,
+    ModelResponse,
+    ToolCallRequest,
+)
+from design_agent.kit.types import Command
 from design_agent.surfaces.slack.client import SlackError
 from design_agent.surfaces.slack.followups import is_stop
 from design_agent.surfaces.slack.phrasebook import phrase, todo_status

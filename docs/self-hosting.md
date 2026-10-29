@@ -65,9 +65,7 @@ thread's sandbox under `/workspace/attachments/`; finals are uploaded to the thr
 ## Security
 
 - The agent starts sandbox containers through the host's Docker socket, which is root-equivalent on
-  that host. Run the stack on a machine dedicated to it, or use LangSmith sandboxes instead
-  (`DESIGN_AGENT_SANDBOX=langsmith`, `DESIGN_AGENT_SANDBOX_SNAPSHOT` from `sandbox publish`) and
-  remove the socket mount.
+  that host. Run the stack on a machine dedicated to it.
 - Sandbox containers run without network, with all capabilities dropped except file ownership,
   no new privileges, and CPU, memory and process limits.
 - Keys stay in the agent process; the sandbox never receives credentials.

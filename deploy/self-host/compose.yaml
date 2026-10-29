@@ -6,8 +6,7 @@
 #   docker compose -f deploy/self-host/compose.yaml --profile slack up --build   # with Slack
 #
 # The agent reaches the host's Docker daemon through its socket to run sandbox containers. That
-# socket is root-equivalent on the host: run this on a machine dedicated to the agent, or use
-# LangSmith sandboxes instead (DESIGN_AGENT_SANDBOX=langsmith) and remove the socket mount.
+# socket is root-equivalent on the host: run this on a machine dedicated to the agent.
 name: design-agent
 
 services:

@@ -12,11 +12,11 @@ from pathlib import Path
 
 import httpx
 import pytest
-from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
-from langchain_core.tools import BaseTool, tool
 
 from design_agent.config import Settings
 from design_agent.harness.tasks import REGISTRY
+from design_agent.kit.messages import AIMessage, BaseMessage, ToolMessage
+from design_agent.kit.tools import BaseTool, tool
 from design_agent.middleware import model_retry
 from design_agent.runtime import local
 from design_agent.runtime.local import build_local_runtime

@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import pytest
-from langgraph.store.memory import InMemoryStore
 
 from design_agent.harness import events as ev
 from design_agent.harness.policy import Delivery, decide
@@ -25,6 +24,7 @@ from design_agent.harness.workflow import (
     schema_errors,
     step_key,
 )
+from design_agent.kit.store import InMemoryStore
 
 THREAD = "thread-1"
 

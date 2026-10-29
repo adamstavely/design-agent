@@ -19,12 +19,12 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 
 import pytest
-from langchain_core.messages import AIMessage, BaseMessage
 
 from design_agent.assembly import build_agent_components
 from design_agent.config import Settings
 from design_agent.harness import inbox as inbox_module
 from design_agent.harness.tasks import REGISTRY
+from design_agent.kit.messages import AIMessage, BaseMessage
 from design_agent.middleware import footer as footer_module
 from design_agent.middleware.background import BackgroundServices
 from design_agent.middleware.footer import ReplyFooterMiddleware

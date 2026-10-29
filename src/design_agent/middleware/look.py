@@ -23,13 +23,12 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from langchain.agents.middleware import AgentMiddleware
-from langchain.tools import ToolRuntime
-from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from langchain_core.tools import BaseTool, tool
 from PIL import Image
 
+from design_agent.kit.messages import AIMessage, HumanMessage, SystemMessage
+from design_agent.kit.middleware import AgentMiddleware
+from design_agent.kit.models import BaseChatModel
+from design_agent.kit.tools import BaseTool, ToolRuntime, tool
 from design_agent.middleware.meter import publish_usage
 from design_agent.tools.files import (
     BackendFor,

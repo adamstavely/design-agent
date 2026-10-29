@@ -8,15 +8,14 @@ reads it. `clear_old_tool_results` builds that edit for helper models on Anthrop
 an opt-in request field, so it does nothing for a provider that is not sent it. Each clear rewrites
 the cache from the first cleared result, so it clears in batches (`clear_at_least`).
 
-Counting images. LangChain's `count_tokens_approximately`, which Deep Agents' summarization uses,
-charges every image a flat 85 tokens, while Claude bills an image by its 28 x 28 pixel patches (a
-1080p frame is 2,691 tokens), so an image-heavy thread is undercounted many times over and
-summarization barely fires. `image_tokens` is that cost and `count_tokens_with_images` a drop-in
-counter; for other providers it is an estimate on the same scale. Image sizes are read from the
-file header (PNG, JPEG, GIF, WebP, BMP) with the standard library.
+Counting images. The kit's `count_tokens_approximately`, which its summarization uses, charges every
+image a flat 85 tokens, while Claude bills an image by its 28 x 28 pixel patches (a 1080p frame is
+2,691 tokens), so an image-heavy thread is undercounted many times over and summarization barely
+fires. `image_tokens` is that cost and `count_tokens_with_images` a drop-in counter; for other
+providers it is an estimate on the same scale. Image sizes are read from the file header (PNG, JPEG,
+GIF, WebP, BMP) with the standard library.
 
-Deep Agents' summarization summarizes on the client; langchain's `ClearToolUsesEdit` clears
-client-side too. Upstream, a `context_management` field on a subagent spec would carry this edit.
+The kit's summarization summarizes on the client, so it is no substitute for the server edit.
 """
 
 from __future__ import annotations
@@ -28,8 +27,7 @@ import struct
 from collections.abc import Iterable, Sequence
 from typing import Any
 
-from langchain_core.messages import convert_to_messages
-from langchain_core.messages.utils import count_tokens_approximately
+from design_agent.kit.messages import convert_to_messages, count_tokens_approximately
 
 #: The Anthropic beta header a request needs for `context_management`.
 CONTEXT_MANAGEMENT_BETA = "context-management-2025-06-27"
@@ -183,7 +181,7 @@ def _webp_size(raw: bytes) -> tuple[int, int] | None:
 def image_tokens_of(block: Any, *, max_edge: int = MAX_IMAGE_EDGE_PX) -> int:
     """The image cost of one content block: 0 when it is not an image.
 
-    Reads the Anthropic block (`source.type == "base64"`), LangChain's standard blocks (`base64`,
+    Reads the Anthropic block (`source.type == "base64"`), the standard blocks (`base64`,
     or `source_type="base64"` with `data`), OpenAI's `image_url` with a `data:` URL, and an
     Anthropic `tool_result` block's nested images. An image known only by URL or file id is
     charged the most one image can cost; bytes that do not decode as an image cost 0 (the image
@@ -237,8 +235,8 @@ def count_tokens_with_images(
     """`count_tokens_approximately`, with each image at its real cost instead of 85 tokens.
 
     Text stays at about four characters a token, with the same per-message overhead and tool
-    schemas as LangChain's counter, so a thread without images counts the same. Accepts `tools`,
-    which is how deepagents' summarization decides to pass the tool schemas in.
+    schemas as the kit's counter, so a thread without images counts the same. Accepts `tools`,
+    as the kit's counter does.
     """
     converted = convert_to_messages(list(messages))
     text = count_tokens_approximately(

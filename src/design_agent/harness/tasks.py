@@ -8,12 +8,11 @@ A helper a restart killed never says so itself: its heartbeat record goes stale,
 (`harness.ledger.sweep`) publishes `TASK_INTERRUPTED` for it.
 
 What runs is the adapter's business: `launch` takes the record and a coroutine factory (Design
-Agent's runs a declared Deep Agents subagent in the thread's own sandbox; a pipeline runs its
+Agent's runs a declared kit subagent in the thread's own sandbox; a pipeline runs its
 script). `CURRENT` names the record whose code is running, so a helper's own tools
 (`report_progress`) and middleware (the meter, the transcript) know whose they are.
 
-Deep Agents' `AsyncSubAgentMiddleware` runs subagents as server runs on their own threads, which
-do not share the lead's sandbox; until they can, helpers run in-process behind `HelperRunner`.
+Helpers run in-process behind `HelperRunner`, so they share the lead's sandbox.
 """
 
 from __future__ import annotations
@@ -44,7 +43,7 @@ class TaskRecord:
     label: str
     wave: str | None
     started_at: float
-    #: What runs it, for the adapter: a deepagents subagent type, a pipeline name.
+    #: What runs it, for the adapter: a kit subagent type, a pipeline name.
     subagent_type: str = ""
     status: Status = "running"
     finished_at: float | None = None

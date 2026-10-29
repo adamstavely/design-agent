@@ -1,17 +1,17 @@
 """Prompt-cache lifetime per role, for Anthropic models.
 
-deepagents installs Anthropic prompt caching on every agent it builds, with a five-minute TTL and
-no way to pass another. The lead's thread is read again minutes to hours apart (a wake-up, the
-person's next message), so its prefix is worth an hour; a helper's burst of calls is not. This
-model sets every cache breakpoint in a request to the role's TTL. All breakpoints get the same
-TTL, which also satisfies the provider's rule that longer-lived breakpoints come first.
+The kit's `create_deep_agent` installs Anthropic prompt caching on every agent it builds, with a
+five-minute TTL and no way to pass another. The lead's thread is read again minutes to hours apart
+(a wake-up, the person's next message), so its prefix is worth an hour; a helper's burst of calls is
+not. This model sets every cache breakpoint in a request to the role's TTL. All breakpoints get the
+same TTL, which also satisfies the provider's rule that longer-lived breakpoints come first.
 """
 
 from __future__ import annotations
 
 from typing import Any, Literal
 
-from langchain_anthropic import ChatAnthropic
+from design_agent.kit.models.anthropic import ChatAnthropic
 
 CacheTtl = Literal["5m", "1h"]
 
