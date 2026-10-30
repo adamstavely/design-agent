@@ -6,7 +6,7 @@ import posixpath
 from collections.abc import Callable
 from typing import Any
 
-from deepagents.backends.protocol import BackendProtocol
+from design_agent.kit.deep.backends import BackendProtocol
 
 #: Resolves the thread's sandbox backend from a tool's runtime (`RuntimeProfile.backend_for`).
 BackendFor = Callable[[Any], BackendProtocol | None]

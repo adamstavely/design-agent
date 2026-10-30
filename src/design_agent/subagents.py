@@ -1,6 +1,6 @@
 """The helpers the lead delegates to: one worker, declared once per effort level.
 
-Deep Agents' `task(description, subagent_type)` is the delegation interface: the description is
+The kit's `task(description, subagent_type)` is the delegation interface: the description is
 the prompt the lead writes for that one job, and `subagent_type` is the only other argument. A
 model or effort chosen per call would bypass the middleware compiled into each subagent, so the
 effort is the type:
@@ -19,11 +19,10 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from deepagents import SubAgent
-from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
-from langchain.agents.middleware import AgentMiddleware
-
 from design_agent.config import Settings
+from design_agent.kit.deep import SubAgent
+from design_agent.kit.deep.subagents import GENERAL_PURPOSE_SUBAGENT
+from design_agent.kit.middleware import AgentMiddleware
 from design_agent.models.factory import build_chat_model, resolve_model
 
 SKILLS = ("/skills/",)

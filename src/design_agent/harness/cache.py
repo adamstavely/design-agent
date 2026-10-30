@@ -17,8 +17,8 @@ shape, so a payload for another provider passes through unchanged.
   the shared prefix instead of each writing it.
 - `prefix_fingerprint` and `PrefixWatch` say which part of a prefix changed between two calls.
 
-Deep Agents' Anthropic prompt-caching middleware uses a fixed 5m TTL and tags the tools only when
-the last one is a `BaseTool`.
+The kit's `AnthropicPromptCachingMiddleware` asks for one top-level breakpoint with a fixed 5m TTL
+and never tags the tools.
 """
 
 from __future__ import annotations

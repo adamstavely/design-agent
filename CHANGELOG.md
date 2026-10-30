@@ -2,6 +2,66 @@
 
 ## Unreleased
 
+### Added: team memory without MDA
+
+- **`/memories/agent/` is back on every runtime.** It is a host folder (`workspace/memories/agent/`,
+  moved with `DESIGN_AGENT_MEMORY_PATH`) routed into the lead's file tools, so house rules the team
+  states outlive the sandbox, every thread and a restart. Its `AGENTS.md` is read at the start of
+  each turn into the lead's system prompt (`middleware/team_memory.py`); people can read or correct
+  the files on disk. The self-hosted compose file keeps it in a `memories` volume. There is no
+  personal layer (`/memories/user/`). Turn it off with `DESIGN_AGENT_ENABLE_MEMORY=0`.
+
+### Changed: runs without LangChain or LangSmith
+
+This fork no longer depends on LangChain, LangGraph, LangSmith, Deep Agents or Managed Deep Agents.
+
+- **New runtime.** The agent runs on a small in-repo runtime, `src/design_agent/kit/`: messages,
+  tools, middleware hooks, the agent loop (`kit/agent.py`), file and shell tools, skills, `task`
+  subagents and conversation compaction (`kit/deep/`), stores and checkpointers (`kit/store.py`,
+  `kit/checkpoint.py`, in memory, SQLite or Postgres) and MCP through FastMCP (`kit/mcp.py`). The
+  agent's middleware, tools, skills and prompts are unchanged in behavior.
+- **Models through provider SDKs.** Anthropic and OpenAI models are called through the official
+  `anthropic` and `openai` Python SDKs (`kit/models/`). Groq, Mistral, Google Gemini and
+  OpenRouter (`groq:`, `mistral:`, `google_genai:`/`google:`, `openrouter:`) run through their
+  OpenAI-compatible endpoints, as does any other endpoint set with `DESIGN_AGENT_MODEL_BASE_URL`
+  and `DESIGN_AGENT_MODEL_API_KEY_ENV`. The `google`, `groq` and `mistral` pip extras are gone.
+- **Self-hosting is the only deployment.** Managed Deep Agents support is removed: `agent.py`,
+  `identity.py`, `memory.py`, `channels/`, `schedules/`, the root `tools/mcp.py` and
+  `sandbox/__init__.py`, `mda deploy`/`dev`/`connections`, Context Hub, MDA memory layers, MDA
+  one-time schedules and MDA's Slack channel. Run the CLI (`design-agent ask`, `demo`), the HTTP
+  API (`design-agent serve`) or the self-hosted Slack app (`design-agent slack`, Socket Mode or
+  HTTP) with Docker sandboxes and SQLite or Postgres (`DATABASE_URL`); `docs/self-hosting.md` and
+  `deploy/self-host/compose.yaml` cover it. `docs/deploy-mda.md` is deleted.
+- **LangSmith is removed.** No tracing, no `list_traces`/`read_trace` tools, no LangSmith Gateway
+  (`langsmith:provider/model` models), no LangSmith Sandboxes. The Slack footer no longer carries a
+  trace link (`2 agents running • render 45% • 12 min • ~$12.40 so far`); usage and cost are still
+  metered locally, in the footer and on the CLI's last line.
+- **Removed settings:** `LANGSMITH_API_KEY`, `LANGSMITH_GATEWAY_API_KEY`,
+  `DESIGN_AGENT_ENABLE_TRACES`, `DESIGN_AGENT_TRACE_HOST`, `DESIGN_AGENT_SANDBOX_SNAPSHOT`,
+  `DESIGN_AGENT_SANDBOX_FS_GIB`, `DESIGN_AGENT_SANDBOX_EGRESS_ALLOW`, `DESIGN_AGENT_SLACK_NAME`,
+  `DESIGN_AGENT_SLACK_DESCRIPTION`, `DESIGN_AGENT_SLACK_BACKGROUND_COLOR` and
+  `DESIGN_AGENT_SLACK_ALLOW_BOT_TRIGGERS`. `DESIGN_AGENT_SANDBOX` is now `auto`, `docker` or `host`.
+  `DESIGN_AGENT_SLACK_TRIGGER_ON_ALL_MESSAGES` stays.
+- **Removed commands:** `design-agent sandbox publish` and `design-agent sandbox use`. `doctor`
+  drops its `mda-project` and `mda-deploy` checks, adds a `skills` check (vendored skills match
+  `skills-lock.json`) and checks the `anthropic`, `openai` and `fastmcp` packages.
+- **MCP authentication.** Servers in `config/mcp.toml` sign in only with headers from the host
+  environment (`headers_env`); the MDA `connection` and `owner` keys are rejected
+  with an error, and per-person OAuth connections no longer exist. `config/mcp.example.toml` has
+  Notion, Linear, GitHub and Figma presets with `headers_env`.
+- **Paper.** `PAPER_MODE=local` and `bridged` work as before; bridged mode authenticates with
+  `PAPER_BRIDGE_TOKEN` (the MDA `paper-bridge` workspace connection is gone).
+- **Housekeeping** only sweeps background work; there are no MDA schedules to tidy.
+- **Vendored skills.** LangChain's `deep-agents-core`, `deep-agents-memory`,
+  `deep-agents-orchestration`, `managed-deep-agents`, `langsmith-dataset`, `langsmith-evaluator`
+  and `langsmith-trace` skills are removed, with their upstreams in `skills-lock.json` and their
+  license files. HyperFrames is the only vendored upstream.
+- **Docs.** The README quickstart is the self-hosted path; every guide and coding-agent skill
+  describes the agent as it now runs. The project credits LangChain, which built and open-sourced
+  the original (`NOTICE.md`).
+
+## Upstream, before the fork
+
 ### Added
 
 - Memory on Managed Deep Agents (`memory.py`): a team layer every caller shares and a personal

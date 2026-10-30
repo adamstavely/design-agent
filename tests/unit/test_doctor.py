@@ -1,11 +1,12 @@
-"""`doctor`'s MDA deploy check: what would make a plain `mda deploy` fail or ship the wrong thing."""
+"""`doctor`'s checks that read the checkout itself."""
 
 from __future__ import annotations
 
+import json
 import shutil
 from pathlib import Path
 
-from design_agent.doctor import _check_mda_deploy
+from design_agent.doctor import PACKAGES, _check_skills
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -19,25 +20,21 @@ def _project(tmp_path: Path) -> Path:
     return root
 
 
-def test_this_checkout_is_ready_for_a_plain_mda_deploy(tmp_path: Path) -> None:
-    check = _check_mda_deploy(_project(tmp_path))
+def test_this_checkouts_vendored_skills_match_the_lock(tmp_path: Path) -> None:
+    check = _check_skills(_project(tmp_path))
     assert check.status == "ok", check.detail
 
 
-def test_a_binary_file_in_skills_fails_the_check(tmp_path: Path) -> None:
+def test_an_edited_vendored_skill_is_reported(tmp_path: Path) -> None:
     root = _project(tmp_path)
-    (root / "skills" / "stills" / "logo.png").write_bytes(b"\x89PNG\r\n\x1a\n\xff\xfe")
-    check = _check_mda_deploy(root)
-    assert check.status == "fail"
-    assert "skills/stills/logo.png" in check.detail and "skill-binaries/" in check.detail
-
-
-def test_self_hosting_keys_in_env_are_named_never_printed(tmp_path: Path) -> None:
-    root = _project(tmp_path)
-    (root / ".env").write_text(
-        "ANTHROPIC_API_KEY=sk-ant-secret\nSLACK_APP_TOKEN=xapp-secret\nDATABASE_URL=\n"
+    lock = json.loads((root / "skills-lock.json").read_text())
+    assert lock, "the lock lists vendored skills"
+    vendored = next(
+        p for p in sorted((root / "skills").rglob("SKILL.md")) if "hyperframes" in str(p)
     )
-    check = _check_mda_deploy(root)
-    assert check.status == "warn"
-    assert "SLACK_APP_TOKEN" in check.detail and "DATABASE_URL" not in check.detail
-    assert "secret" not in check.detail.replace("deployment secrets", "")
+    vendored.write_text(vendored.read_text() + "\nedited\n")
+    assert _check_skills(root).status == "warn"
+
+
+def test_doctor_checks_the_provider_sdks_not_an_agent_framework() -> None:
+    assert set(PACKAGES) == {"anthropic", "openai", "fastmcp"}

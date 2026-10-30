@@ -14,7 +14,8 @@ a yes. The whole set costs about $120 per model; a few tasks cost a few dollars.
 3. **Run before and after, same model, same tasks:**
    `uv run design-agent eval run --task <id> --task <id> --out workspace/out/evals/<label>`.
 4. **Read the reports.** Each folder has `report.json`, `README.md` (failed checks per task, spend,
-   time) and `files/<task>/`. Open the files and look at them. The graders check outputs, sizes,
+   time), `files/<task>/` and `traces/<task>.json` (every turn and tool call, written locally).
+   Open the files and look at them. The graders check outputs, sizes,
    copy and behavior, never taste: a person judges taste.
 5. **Report numbers from the reports:** checks passed, spend and time, before against after. Do not
    summarize a run you did not read.

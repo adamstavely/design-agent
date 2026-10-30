@@ -12,8 +12,8 @@ from typing import Any
 import anthropic
 import httpx
 import pytest
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 
+from design_agent.kit.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 from design_agent.middleware.tool_history import (
     StaleHistoryError,
     ToolHistoryMiddleware,

@@ -95,7 +95,7 @@ def _norm(path: object) -> str:
 
 
 def _skill(path: str) -> str:
-    """The skill a path belongs to: MDA's read-only mount, or the staged workspace copy."""
+    """The skill a path belongs to: the read-only `/skills/` mount, or the staged workspace copy."""
     found = re.match(rf"^(?:{_WS})?/skills/([^/]+)", path)
     return found.group(1) if found else ""
 
@@ -231,7 +231,7 @@ _BUILT: dict[str, Callable[[Args], Phrase]] = {
     "look": _look,
 }
 
-#: Tools phrased by name alone: this repository's host tools and deepagents' fixed ones.
+#: Tools phrased by name alone: this repository's host tools and the kit's fixed ones.
 _NAMED: dict[str, Phrase] = {
     "write_todos": ("Planning the work", "Planned the work"),
     "glob": ("Scouting for files", "Scouted for files"),
@@ -467,7 +467,7 @@ def phrase(
 
 
 def todo_status(status: object) -> str:
-    """A deepagents todo status as a Slack card status (pending, in_progress, complete, error)."""
+    """A kit todo status as a Slack card status (pending, in_progress, complete, error)."""
     value = str(status or "").lower()
     if value in ("completed", "complete", "done"):
         return "complete"

@@ -9,13 +9,12 @@ Not in the system prompt: a prompt that changes every turn breaks the cached pre
 thread behind it. Not appended to every model call either, since a note riding the tail changes
 every request. Written before the model call, it lands after every `before_agent` hook, so a hook
 that replaces the history (a resumed helper's restored transcript) cannot drop it. It is a human
-message because langchain-anthropic folds system messages into the one system prompt.
+message because the Anthropic adapter folds system messages into the one system prompt.
 
 Whose timezone: the lead decides once per turn through `zone_for` (the Slack adapter reads the
 person's profile; otherwise the deployment's `DESIGN_AGENT_TIMEZONE`) and keeps it in
-`today_zone`. A subagent reads its lead's and never hands it back: deepagents copies a finished
-subagent's state to its lead, and two parallel `task` calls would write it twice in one step,
-which LangGraph refuses. A zone that cannot be read is UTC, and the note says so.
+`today_zone`. A subagent reads its lead's and never sets it. A zone that cannot be read is UTC,
+and the note says so.
 """
 
 from __future__ import annotations
@@ -27,10 +26,9 @@ from datetime import UTC, datetime
 from typing import Annotated, Any, NotRequired, TypedDict
 from zoneinfo import ZoneInfo
 
-from langchain.agents.middleware import AgentMiddleware, AgentState
-from langchain.agents.middleware.types import OmitFromSchema
-from langchain_core.messages import HumanMessage
-from langgraph.runtime import Runtime
+from design_agent.kit.messages import HumanMessage
+from design_agent.kit.middleware import AgentMiddleware, AgentState, OmitFromSchema
+from design_agent.kit.types import Runtime
 
 _LOGGER = logging.getLogger(__name__)
 

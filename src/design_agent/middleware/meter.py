@@ -2,7 +2,7 @@
 
 `UsageMeterMiddleware(role)` wraps the model call: after the handler returns, it prices the
 response's `usage_metadata` (`harness.meter.cost_of`) and publishes a `USAGE` event for the thread
-(`langgraph.config.get_config()["configurable"]["thread_id"]`). The source is `lead`, or the
+(`kit.config.get_config()["configurable"]["thread_id"]`). The source is `lead`, or the
 helper's task id when a background helper made the call (`harness.meter.CURRENT_TASK_ID`, which
 `middleware/background.py` sets). `METER` is the process's meter, summing those events per thread
 and source; `check_tasks` can read `METER.summary(thread_id)`.
@@ -22,13 +22,12 @@ import logging
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
-from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
-from langchain_core.messages import AIMessage
-from langgraph.config import get_config
-
 from design_agent.harness import events as ev
 from design_agent.harness.cache import StaggerGate
 from design_agent.harness.meter import CURRENT_TASK_ID, LEAD, Meter, cost_of
+from design_agent.kit.config import get_config
+from design_agent.kit.messages import AIMessage
+from design_agent.kit.middleware import AgentMiddleware, ModelRequest, ModelResponse
 
 _LOGGER = logging.getLogger(__name__)
 

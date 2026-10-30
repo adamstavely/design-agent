@@ -20,7 +20,7 @@ COPY examples/brands ./examples/brands
 COPY fonts ./fonts
 COPY licenses ./licenses
 COPY sandbox ./sandbox
-RUN useradd --create-home --uid 10001 agent && mkdir -p /app/workspace/out /app/workspace/state && chown -R agent /app/workspace
+RUN useradd --create-home --uid 10001 agent && mkdir -p /app/workspace/out /app/workspace/state /app/workspace/memories && chown -R agent /app/workspace
 USER agent
 ENV DESIGN_AGENT_RUNTIME=self_hosted DESIGN_AGENT_API_HOST=0.0.0.0
 EXPOSE 8080

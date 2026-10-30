@@ -8,9 +8,8 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
-
 from design_agent.config import Settings
+from design_agent.kit.messages import AIMessage, BaseMessage, ToolMessage
 from design_agent.runtime.local import build_local_runtime
 from design_agent.surfaces.slack import BoltSlackResolver, SlackSurface
 from design_agent.surfaces.slack.bolt_app import (

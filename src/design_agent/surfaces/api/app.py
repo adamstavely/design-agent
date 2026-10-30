@@ -1,6 +1,6 @@
 """The self-hosted HTTP API: one process runs the agent, its helpers, wake-ups and housekeeping.
 
-Not the LangGraph Agent Server protocol; a small surface for your own tools and the Slack adapter:
+A small surface for your own tools and the Slack adapter:
 
 - `POST /threads/{thread_id}/messages` `{"text": "..."}` runs one turn and returns the reply, the
   files delivered on the thread so far, and whether background work is still running.

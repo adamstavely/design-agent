@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Install Design Agent: uv if it is missing, a clone of the repository, and its dependencies.
 #
-#   curl -fsSL https://raw.githubusercontent.com/langchain-ai/design-agent/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/adamstavely/design-agent/main/install.sh | bash
 #
 # It never asks for or writes a key. DESIGN_AGENT_DIR picks the folder (default ./design-agent);
 # DESIGN_AGENT_REPO picks what to clone (a fork, say).
 set -euo pipefail
 
-REPO="${DESIGN_AGENT_REPO:-https://github.com/langchain-ai/design-agent.git}"
+REPO="${DESIGN_AGENT_REPO:-https://github.com/adamstavely/design-agent.git}"
 DIR="${DESIGN_AGENT_DIR:-design-agent}"
 
 say() { printf '\033[1m%s\033[0m\n' "$*"; }
@@ -23,7 +23,7 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 if [ -e "$DIR" ]; then
-  [ -f "$DIR/agent.py" ] && [ -d "$DIR/.git" ] || fail "$DIR already exists and is not a Design Agent checkout."
+  [ -f "$DIR/instructions.md" ] && [ -d "$DIR/.git" ] || fail "$DIR already exists and is not a Design Agent checkout."
   say "Updating $DIR"
   git -C "$DIR" pull --ff-only
 else
@@ -36,13 +36,14 @@ say "Installing dependencies"
 
 cat <<EOF
 
-Installed in $DIR. To put it in your team's Slack with Managed Deep Agents:
+Installed in $DIR. Try it with Docker and no keys, then with a model key:
 
   cd $DIR
-  uv run design-agent config set LANGSMITH_API_KEY=lsv2_... ANTHROPIC_API_KEY=sk-ant-...
-  uv run design-agent sandbox publish   # once per workspace: the agent's computer
-  uv run mda deploy
+  uv run design-agent sandbox build     # once: the agent's computer
+  uv run design-agent demo
+  uv run design-agent config set ANTHROPIC_API_KEY=sk-ant-...
+  uv run design-agent ask "A LinkedIn card announcing our new service, 1200x627."
 
-Or open $DIR in Claude Code, Codex or Cursor and say "Deploy it to our Slack."
-To try it locally first, with Docker and no keys: uv run design-agent sandbox build && uv run design-agent demo
+For your team's Slack, see docs/self-hosting.md, or open $DIR in Claude Code, Codex or Cursor and
+say "Deploy it to our Slack."
 EOF

@@ -1,6 +1,6 @@
-"""Where threads, checkpoints and the store live outside MDA.
+"""Where threads, checkpoints and the store live.
 
-Self-hosted deployments set `DATABASE_URL` (Postgres): LangGraph's Postgres checkpointer and store
+Self-hosted deployments set `DATABASE_URL` (Postgres): the Postgres checkpointer and store
 hold the conversations and everything the harness keeps in the store (helper ledger, transcripts,
 check-ins, watches, pipeline memos, observations, delivery ledgers). Without it, the CLI and a
 single-machine server use SQLite files in `workspace/state/`.
@@ -20,8 +20,8 @@ from design_agent.config import Settings
 async def open_persistence(settings: Settings, workspace: Path) -> AsyncIterator[tuple[Any, Any]]:
     """`(checkpointer, store)`, set up and closed with the context."""
     if settings.database_url is not None:
-        from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-        from langgraph.store.postgres.aio import AsyncPostgresStore
+        from design_agent.kit.checkpoint import AsyncPostgresSaver
+        from design_agent.kit.store import AsyncPostgresStore
 
         url = settings.database_url.get_secret_value()
         async with (
@@ -32,8 +32,8 @@ async def open_persistence(settings: Settings, workspace: Path) -> AsyncIterator
             await store.setup()
             yield checkpointer, store
         return
-    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-    from langgraph.store.sqlite.aio import AsyncSqliteStore
+    from design_agent.kit.checkpoint import AsyncSqliteSaver
+    from design_agent.kit.store import AsyncSqliteStore
 
     state = workspace / "state"
     state.mkdir(parents=True, exist_ok=True)

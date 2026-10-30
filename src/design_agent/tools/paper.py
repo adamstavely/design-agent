@@ -5,11 +5,10 @@ Paper's MCP server runs inside Paper Desktop. `PAPER_MODE` picks how the agent r
 - `local`: Paper Desktop runs on the machine the agent runs on. The stdio server `paper mcp`
   (`~/.paper/bin/paper`, else `paper` on PATH) is preferred; `PAPER_MCP_URL` set to
   `http://127.0.0.1:29979/mcp` selects Desktop's legacy HTTP endpoint, served only while a file
-  is open. Local and self-hosted runtimes only: MDA serves no stdio and cannot reach this loopback.
+  is open.
 - `bridged`: Paper Desktop runs on a machine the person controls, behind `design-agent
   paper-bridge` (`design_agent.paper_bridge`), reached over a tunnel they own at `PAPER_MCP_URL`.
-  Locally and self-hosted the bearer is `PAPER_BRIDGE_TOKEN`; on MDA it is the agent-owned
-  workspace connection `paper-bridge`, resolved at call time and never compiled into the deploy.
+  The bearer is `PAPER_BRIDGE_TOKEN`.
 - `off`: no server. Boards render in the sandbox and are attached to the thread.
 
 `PaperPolicy` is the whole policy as data plus one pure decision, enforced twice: on the host by
@@ -34,8 +33,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit
 
-from langchain_core.tools import BaseTool
-
+from design_agent.kit.tools import BaseTool
 from design_agent.tools.mcp import McpServer
 
 if TYPE_CHECKING:
@@ -48,8 +46,6 @@ SERVER = "paper"
 PREFIX = f"{SERVER}_"
 #: Paper Desktop's legacy HTTP endpoint, served only while a file is open.
 LOCAL_HTTP = "http://127.0.0.1:29979/mcp"
-#: The MDA workspace connection holding the bridge's bearer token.
-BRIDGE_CONNECTION = "paper-bridge"
 #: Screenshots and exports render on the Desktop machine; a cold first call can take a while.
 TIMEOUT_S = 120.0
 
@@ -472,8 +468,8 @@ def bare_name(tool_name: str) -> str | None:
 def admit_paper_tools(tools: Sequence[BaseTool], policy: PaperPolicy) -> list[BaseTool]:
     """Loaded tools with Paper's narrowed to the policy, and the catalog check logged.
 
-    For loaders that hold the tool list (local and self-hosted); on MDA, where the platform adds
-    connector tools at run time, `PaperScopeMiddleware` applies the same filter per model call.
+    For the loaders that hold the tool list (the CLI, the API and the Slack app);
+    `PaperScopeMiddleware` applies the same filter again on each model call.
     """
     names = [n for t in tools if (n := bare_name(t.name)) is not None]
     if names:
@@ -504,7 +500,7 @@ def _is_local_endpoint(url: str) -> bool:
 def paper_server(
     settings: Settings,
     *,
-    runtime: RuntimeName,
+    runtime: RuntimeName,  # noqa: ARG001 - every runtime serves Paper alike; callers name theirs
     cli: Callable[[], str | None] | None = None,
 ) -> McpServer | None:
     """The MCP server for the configured mode on this runtime; None when Paper is off.
@@ -516,11 +512,6 @@ def paper_server(
     if settings.paper_mode == "off":
         return None
     if settings.paper_mode == "local":
-        if runtime == "mda":
-            raise PaperConfigError(
-                "PAPER_MODE=local needs Paper Desktop on the machine the agent runs on; "
-                "on Managed Deep Agents use PAPER_MODE=bridged"
-            )
         if url is None or url == "stdio":
             command = (cli or paper_cli)()
             if command is None:
@@ -538,13 +529,9 @@ def paper_server(
             )
         return McpServer(name=SERVER, url=url, transport="http", timeout=TIMEOUT_S)
     loopback = url is not None and url.startswith("http://127.0.0.1")
-    if url is None or not (url.startswith("https://") or (loopback and runtime != "mda")):
+    if url is None or not (url.startswith("https://") or loopback):
         raise PaperConfigError(
             "PAPER_MODE=bridged needs PAPER_MCP_URL set to the bridge's https address (…/mcp)"
-        )
-    if runtime == "mda":
-        return McpServer(
-            name=SERVER, url=url, transport="http", connection=BRIDGE_CONNECTION, timeout=TIMEOUT_S
         )
     if settings.paper_bridge_token is None:
         raise PaperConfigError(

@@ -1,14 +1,14 @@
 """The Docker sandbox runner: one container per thread, built from `sandbox/Dockerfile`.
 
 Only this module touches the Docker socket; containers never see it. Each thread gets a container
-and a named volume mounted at `/workspace`, so files survive an idle stop while processes do not,
-as on Managed Deep Agents. Containers run with no network (default-deny egress), all capabilities
+and a named volume mounted at `/workspace`, so files survive an idle stop while processes do not.
+Containers run with no network (default-deny egress), all capabilities
 dropped and a pids limit. The agent's commands run as the image's unprivileged `node` user
 (uid 1000); staging runs as root, so the staged brand pack, gates and skill copies are read-only
 to the agent.
 
-`DockerSandboxBackend` is the one backend instance a compiled graph holds: Deep Agents takes a
-backend instance, not a factory, so each call resolves the current thread's container from the
+`DockerSandboxBackend` is the one backend instance an agent holds: the harness takes a backend
+instance, not a factory, so each call resolves the current thread's container from the
 run config.
 """
 
@@ -27,13 +27,14 @@ import time
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 
-from deepagents.backends.protocol import (
+from design_agent.kit.config import get_config
+from design_agent.kit.deep.backends import (
+    MAX_OUTPUT_BYTES,
+    BaseSandbox,
     ExecuteResponse,
     FileDownloadResponse,
     FileUploadResponse,
 )
-from deepagents.backends.sandbox import MAX_OUTPUT_BYTES, BaseSandbox
-from langgraph.config import get_config
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ def _under(path: str, roots: Iterable[str]) -> bool:
 
 
 def current_thread_id(default: str = "local") -> str:
-    """The thread of the run in progress, from the LangGraph run config."""
+    """The thread of the run in progress, from the run config."""
     try:
         configurable = get_config().get("configurable") or {}
     except RuntimeError:

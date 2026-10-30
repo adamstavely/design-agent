@@ -19,8 +19,8 @@ from pathlib import Path, PurePosixPath
 from design_agent.brand.schema import BrandPack, render_tokens_css
 
 WORKSPACE = PurePosixPath("/workspace")
-#: Where a deployed project keeps skills' binary files: MDA syncs `skills/` to Context Hub, which
-#: takes only UTF-8 text (`deploy.stage` moves them here).
+#: Where a project keeps skills' binary files: `skills/` holds only UTF-8 text, so `skills_lock`
+#: vendors them here and the stager puts them back beside the skill.
 SKILL_BINARIES = "skill-binaries"
 #: Fonts the sandbox recipe bakes, by sha256, so the stager never uploads them again.
 BAKED_FONT_SHA256 = frozenset(
@@ -144,7 +144,7 @@ def build_manifest(project_root: Path, brand: BrandPack) -> Manifest:
             for path in _files(root, skill):
                 rel = path.relative_to(skill).as_posix()
                 assets.append(_asset(path, WORKSPACE / "skills" / skill.name / rel))
-    # Skills' binary files live here, because Context Hub takes only UTF-8 text (skills_lock).
+    # Skills' binary files live here, because `skills/` holds only UTF-8 text (skills_lock).
     binaries = root / SKILL_BINARIES
     if binaries.is_dir():
         for path in _files(root, binaries):

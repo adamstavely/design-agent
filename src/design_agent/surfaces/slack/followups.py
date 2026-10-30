@@ -8,8 +8,8 @@ taken out; it is a person's words and is treated as untrusted input like any mes
 
 Reads are shared for `TTL_SECONDS` per thread, so the progress heartbeat and steering together
 cost one `conversations.replies` a step at most (Slack allows about 50 a minute per app).
-A file a follow-up brings is fetched host-side (`attachment_path` is MDA's own `<id>__<name>`
-naming under `/workspace/attachments/`, so a file that arrives both ways is one file).
+A file a follow-up brings is fetched host-side, to `<id>__<name>` under `/workspace/attachments/`
+(`attachment_path`).
 """
 
 from __future__ import annotations

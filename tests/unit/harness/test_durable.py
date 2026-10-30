@@ -6,13 +6,6 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from langchain.agents import create_agent
-from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
-from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage, ToolMessage
-from langchain_core.outputs import ChatGeneration, ChatResult
-from langchain_core.tools import tool
-from langgraph.graph.message import REMOVE_ALL_MESSAGES, add_messages
-from langgraph.store.memory import InMemoryStore
 from pydantic import Field
 
 from design_agent.harness import durable
@@ -24,6 +17,19 @@ from design_agent.harness.durable import (
     resume_brief,
     save_on_cancel,
 )
+from design_agent.kit.agent import create_agent
+from design_agent.kit.messages import (
+    REMOVE_ALL_MESSAGES,
+    AIMessage,
+    HumanMessage,
+    RemoveMessage,
+    ToolMessage,
+    add_messages,
+)
+from design_agent.kit.models import ChatGeneration, ChatResult
+from design_agent.kit.models.fake import FakeMessagesListChatModel
+from design_agent.kit.store import InMemoryStore
+from design_agent.kit.tools import tool
 
 
 class _Scripted(FakeMessagesListChatModel):

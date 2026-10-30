@@ -3,7 +3,6 @@
 import json
 
 import pytest
-from langgraph.store.memory import InMemoryStore
 
 from design_agent.harness import events as ev
 from design_agent.harness.learning import (
@@ -18,6 +17,7 @@ from design_agent.harness.learning import (
     post_job_brief,
     skill_key,
 )
+from design_agent.kit.store import InMemoryStore
 
 SKILL = "storyboard"
 

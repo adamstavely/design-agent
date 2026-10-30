@@ -19,10 +19,8 @@ What is saved is always valid to send back, and small:
 - a tool call the restart cut off gets a result saying so, and that its effect is unknown;
 - past `max_bytes`, the oldest steps after the brief are dropped, with a marker where they were.
 
-Deep Agents' `AsyncSubAgentMiddleware` gets this by running subagents as checkpointed server runs,
-but those run on threads of their own, without the lead's sandbox. When the runtime can run a
-background subagent on the lead's sandbox, this becomes LangGraph's own checkpoint; the stub rules
-stay if replay still needs them.
+The kit's checkpointer saves only the lead's thread (subagents are compiled without one), so a
+helper's history is kept here instead.
 """
 
 from __future__ import annotations
@@ -39,14 +37,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from langchain.agents.middleware import (
-    AgentMiddleware,
-    AgentState,
-    ModelRequest,
-    ModelResponse,
-    ToolCallRequest,
-)
-from langchain_core.messages import (
+from design_agent.kit.messages import (
+    REMOVE_ALL_MESSAGES,
     AIMessage,
     BaseMessage,
     HumanMessage,
@@ -55,10 +47,15 @@ from langchain_core.messages import (
     messages_from_dict,
     messages_to_dict,
 )
-from langgraph.graph.message import REMOVE_ALL_MESSAGES
-from langgraph.runtime import Runtime
-from langgraph.store.base import PutOp
-from langgraph.types import Command
+from design_agent.kit.middleware import (
+    AgentMiddleware,
+    AgentState,
+    ModelRequest,
+    ModelResponse,
+    ToolCallRequest,
+)
+from design_agent.kit.store import PutOp
+from design_agent.kit.types import Command, Runtime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -79,7 +76,7 @@ TTL_MINUTES = 7 * 24 * 60
 CANCEL_FLUSH_SECONDS = 10.0
 _PAGE = 500
 
-#: Content blocks holding thinking (`reasoning` is LangChain's standard name for the same thing).
+#: Content blocks holding thinking (`reasoning` is the provider-neutral name for the same thing).
 _THINKING = frozenset({"thinking", "redacted_thinking", "reasoning"})
 #: Content blocks holding media, and what their stub calls them.
 _MEDIA = {
@@ -117,7 +114,7 @@ class TranscriptStore:
     sequence number, holding the messages as `messages_to_dict` writes them. Messages are cleaned on
     the way in (module doc), and `load` answers every tool call, so a loaded history is always one a
     model accepts. Past `max_bytes` the oldest chunks after the first (the brief) are deleted, and
-    `load` puts a marker where they were. `store` is LangGraph's `BaseStore`.
+    `load` puts a marker where they were. `store` is the kit's `BaseStore`.
     """
 
     def __init__(self, store: Any, *, max_bytes: int = MAX_BYTES) -> None:
@@ -224,7 +221,7 @@ def _clean(message: BaseMessage, paths: dict[str, str]) -> BaseMessage | None:
         update["artifact"] = None
     content: Any = message.content
     if isinstance(content, list):
-        opened = message.additional_kwargs.get("read_file_path")  # deepagents' read_file sets it
+        opened = message.additional_kwargs.get("read_file_path")  # the kit's read_file sets it
         if isinstance(message, ToolMessage):
             opened = paths.get(message.tool_call_id) or opened
         blocks: list[Any] = []
@@ -379,7 +376,7 @@ class TranscriptCheckpointMiddleware(AgentMiddleware):
     worker run in the lead's turn saves nothing. Around each model call it saves the tool results
     that came back since the last call, then the model's reply: every step is in the store before
     the next one starts, at no extra graph step. `store_getter` returns the deployment store; a
-    detached helper's own runtime has none (the host strips LangGraph's per-run config), so the host
+    detached helper's own runtime has none (the host strips the ended run's internals), so the host
     hands it over. The hook's `runtime.store` is the fallback.
     """
 
@@ -401,8 +398,8 @@ class TranscriptCheckpointMiddleware(AgentMiddleware):
     ) -> dict[str, Any] | None:
         """A fresh brief starts a fresh transcript; a resume brief is swapped for the saved one.
 
-        The swap starts with `RemoveMessage(REMOVE_ALL_MESSAGES)`: LangGraph's `add_messages` and
-        deepagents' messages reducer both drop everything before it (the one-line brief), so the
+        The swap starts with `RemoveMessage(REMOVE_ALL_MESSAGES)`: the kit's `add_messages` drops
+        everything before it (the one-line brief), so the
         state becomes the restored history plus the closing note instead of growing by them.
         """
         task_id = CURRENT_TASK.get()

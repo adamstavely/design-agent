@@ -187,7 +187,7 @@ _LOCKS: weakref.WeakKeyDictionary[Any, dict[str, asyncio.Lock]] = weakref.WeakKe
 
 
 class ObservationStore:
-    """Observations for each skill in a LangGraph `BaseStore` (`aget`, `aput`, `asearch`,
+    """Observations for each skill in a kit `BaseStore` (`aget`, `aput`, `asearch`,
     `adelete`)."""
 
     def __init__(self, store: Any, *, clock: Callable[[], float] = time.time) -> None:

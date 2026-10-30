@@ -1,7 +1,8 @@
 """Fakes for real-graph tests: a host-folder sandbox and a staging target that does nothing.
 
-`FolderSandbox` maps the sandbox's `/workspace` to a temporary folder: file tools go through
-Deep Agents' virtual filesystem, and shell commands run with `/workspace` rewritten to that folder.
+`FolderSandbox` maps the sandbox's `/workspace` to a temporary folder: file tools go through the
+kit's `LocalShellBackend` in virtual mode, and shell commands run with `/workspace` rewritten to
+that folder.
 It stands in for the Docker runner in offline tests; it is not isolation.
 """
 
@@ -9,9 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from deepagents.backends import LocalShellBackend
-from deepagents.backends.protocol import ExecuteResponse
-
+from design_agent.kit.deep.backends import ExecuteResponse, LocalShellBackend
 from design_agent.runtime.sandbox import SandboxBinding, _with_skills
 
 

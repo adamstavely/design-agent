@@ -1,10 +1,9 @@
 """End a turn with the answer so far at the graph's step limit, instead of `GraphRecursionError`.
 
-LangGraph counts steps against `recursion_limit` and raises out of whichever node is running when
-it is reached; the run then ends with nothing to show, though its renders sit in the sandbox.
-deepagents compiles every graph with `recursion_limit=9_999` and MDA sets none, so a turn takes the
-steps its work needs; this only ends it gracefully when the ceiling is a few steps away. Helpers
-are their own graph runs and wrap up the same way, reporting to the lead.
+The agent loop counts steps against `recursion_limit` and raises when it is reached; the run then
+ends with nothing to show, though its renders sit in the sandbox. Runs get `recursion_limit=9_999`,
+so a turn takes the steps its work needs; this only ends it gracefully when the ceiling is a few
+steps away. Helpers are their own runs and wrap up the same way, reporting to the lead.
 
 The wrap-up is one more model call with tools off and a runtime notice, so the model says what is
 finished (with paths), what is not, and the next step. The reply is marked partial in code
@@ -18,12 +17,17 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Annotated, Any, NotRequired
 
-from langchain.agents.middleware import AgentMiddleware, AgentState, ModelRequest, ModelResponse
-from langchain.agents.middleware.types import PrivateStateAttr
-from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import AIMessage, HumanMessage
-from langgraph.errors import GraphBubbleUp
-from langgraph.managed.is_last_step import RemainingStepsManager
+from design_agent.kit.agent import RemainingStepsManager
+from design_agent.kit.errors import GraphBubbleUp
+from design_agent.kit.messages import AIMessage, HumanMessage
+from design_agent.kit.middleware import (
+    AgentMiddleware,
+    AgentState,
+    ModelRequest,
+    ModelResponse,
+    PrivateStateAttr,
+)
+from design_agent.kit.models.anthropic import ChatAnthropic
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,8 +58,8 @@ DELEGATED_PARTIAL_MARKER = (
 
 
 class _StepBudgetState(AgentState):
-    # The manager must be the LAST annotation for LangGraph to treat it as a managed value;
-    # PrivateStateAttr keeps it out of the graph's input and output schemas.
+    # The loop fills `remaining_steps` in; PrivateStateAttr keeps it out of the agent's input and
+    # output.
     remaining_steps: NotRequired[Annotated[int, PrivateStateAttr, RemainingStepsManager]]
 
 
@@ -78,9 +82,7 @@ def _partial_message(message: AIMessage | None, marker: str = _PARTIAL_MARKER) -
 
 
 def _no_tool_choice(model: Any) -> Any:
-    """Tools off for one call. LangChain reads a bare "none" as a tool NAME for Anthropic (and then
-    drops it under thinking), so Anthropic gets its native dict; OpenAI, and so the LangSmith
-    gateway's OpenAI dialect, takes the string."""
+    """Tools off for one call: Anthropic takes its native dict, OpenAI-style APIs the string."""
     return {"type": "none"} if isinstance(model, ChatAnthropic) else "none"
 
 
@@ -133,7 +135,7 @@ class StepBudgetMiddleware(AgentMiddleware):
         except Exception as error:  # noqa: BLE001 - the budget stop must end the turn, not raise
             _LOGGER.warning("[budget] wrap-up call failed (%s); fixed note", type(error).__name__)
             return ModelResponse(result=[_partial_message(None, self.partial_marker)])
-        # The composed handler always hands middleware a ModelResponse (see langchain's
-        # `_normalize_to_model_response`); keep only the reply, marked partial.
+        # The composed handler always hands middleware a ModelResponse (`kit.agent._as_response`);
+        # keep only the reply, marked partial.
         reply = next((m for m in response.result if isinstance(m, AIMessage)), None)
         return ModelResponse(result=[_partial_message(reply, self.partial_marker)])

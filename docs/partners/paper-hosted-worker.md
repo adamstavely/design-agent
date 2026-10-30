@@ -35,7 +35,7 @@ The agent runs in Bridged mode against that hostname, exactly as it would agains
    your process manager) that restart on failure and start in that order at boot.
 6. **Tunnel.** Point your tunnel's hostname at `127.0.0.1:29980` over HTTPS.
 7. **Agent.** `PAPER_MODE=bridged`, `PAPER_MCP_URL=https://<your hostname>/mcp`, and the token as
-   `PAPER_BRIDGE_TOKEN` (self-hosted) or the `paper-bridge` workspace connection (MDA).
+   `PAPER_BRIDGE_TOKEN`.
 
 ## Caveats
 

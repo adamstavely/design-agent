@@ -25,7 +25,7 @@ leave it out and list it as a question for the person.
 4. `logos/`: SVG where the brand provides it; every variant the guide allows (mark, lockup,
    reversed). Do not redraw or trace a logo; ask for files.
 5. `fonts.toml`: for each face, an open font in `fonts/` or a licensed file the person supplies in
-   `private-fonts/` (Git-ignored; it reaches the sandbox as deployment files or a mount). Never
+   `private-fonts/` (Git-ignored; it reaches the sandbox through the workspace stager, from a mount when self-hosted). Never
    commit licensed fonts. `family` is the name inside the file (the sandbox resolves fonts by it),
    `weight` a CSS weight (`"400"`, or `"100 900"` for a variable face), `sha256` from
    `shasum -a 256 <file>`. `uv run design-agent fonts verify` checks all three. Web formats

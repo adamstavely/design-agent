@@ -15,9 +15,10 @@ import io
 from collections.abc import Awaitable, Callable
 from typing import cast
 
-from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
-from langchain_core.messages import AnyMessage
 from PIL import Image
+
+from design_agent.kit.messages import AnyMessage
+from design_agent.kit.middleware import AgentMiddleware, ModelRequest, ModelResponse
 
 #: Long-edge cap, safely under the model API's 2000px limit for a request with many images.
 _MAX_EDGE = 1500

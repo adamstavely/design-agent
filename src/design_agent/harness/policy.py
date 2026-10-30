@@ -14,9 +14,6 @@ Every event reaches the lead; nothing is dropped. What this decides is the cost 
 
 `ping` marks an event a person must act on (an approval, the final, a failure the lead cannot fix
 alone): it wakes the lead at once, and the lead asks them in the thread.
-
-Deep Agents has no push: `AsyncSubAgentMiddleware` has the lead poll with `check_async_task`.
-Upstream, this is a small pure function next to the event type.
 """
 
 from __future__ import annotations

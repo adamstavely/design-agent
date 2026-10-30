@@ -7,10 +7,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from deepagents.backends.protocol import ExecuteResponse, FileDownloadResponse, FileUploadResponse
-from langchain.agents.middleware.types import ToolCallRequest
-from langchain_core.messages import ToolMessage
-
+from design_agent.kit.deep.backends import ExecuteResponse, FileDownloadResponse, FileUploadResponse
+from design_agent.kit.messages import ToolMessage
+from design_agent.kit.middleware import ToolCallRequest
 from design_agent.tools.delivery import (
     UPLOADED,
     DeliveryLedgerMiddleware,

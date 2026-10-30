@@ -77,7 +77,7 @@ def _claude(
         adaptive_thinking=bool(efforts),
         cache_ttls=frozenset({"5m", "1h"}),
         server_context_editing=True,
-        integration_package="langchain-anthropic",
+        integration_package="anthropic",
         # platform.claude.com vision docs: tokens ~= width * height / 750.
         image_tokens_per_megapixel=1_334,
         verified=True,
@@ -95,7 +95,7 @@ def _openai(default_effort: str) -> ModelCapabilities:
         context_window=1_050_000,
         max_output_tokens=128_000,
         responses_api=True,
-        integration_package="langchain-openai",
+        integration_package="openai",
         verified=True,
         notes="OpenAI Responses tool_search; automatic prompt caching.",
     )
@@ -119,7 +119,7 @@ CAPABILITY_REGISTRY: dict[str, ModelCapabilities] = {
         context_window=1_048_576,
         max_output_tokens=65_536,
         streaming_tool_calls=False,
-        integration_package="langchain-google-genai",
+        integration_package="openai",
         verified=True,
         notes="No provider-side deferred tool search: portable selector path.",
     ),
@@ -134,9 +134,6 @@ CAPABILITY_REGISTRY: dict[str, ModelCapabilities] = {
     ),
 }
 
-#: Providers the LangSmith Gateway serves on their own API (`models.factory.GATEWAY_NATIVE_ROUTES`).
-GATEWAY_NATIVE_PROVIDERS = frozenset({"anthropic", "openai"})
-
 UNKNOWN_MODEL = ModelCapabilities(
     provider="",
     vision=False,
@@ -145,13 +142,7 @@ UNKNOWN_MODEL = ModelCapabilities(
 
 
 def capabilities_for(spec: ModelSpec, *, base_url: str | None = None) -> ModelCapabilities:
-    """Exact lookup. A custom endpoint, or a gateway route that is not the provider's own API,
-    never inherits provider-native features."""
-    if spec.via_gateway:
-        upstream = CAPABILITY_REGISTRY.get(str(spec.upstream), UNKNOWN_MODEL)
-        if spec.upstream.provider in GATEWAY_NATIVE_PROVIDERS:
-            return upstream
-        return _portable(upstream, "LangSmith Gateway shared route: portable selector.")
+    """Exact lookup. A custom endpoint never inherits provider-native features."""
     found = CAPABILITY_REGISTRY.get(str(spec), UNKNOWN_MODEL)
     if base_url is not None and found.disclosure is ToolDisclosure.PROVIDER_NATIVE:
         return _portable(found, "custom base URL: provider-native search is not assumed.")

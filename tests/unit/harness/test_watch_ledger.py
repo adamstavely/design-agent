@@ -8,7 +8,6 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
-from langgraph.store.memory import InMemoryStore
 
 from design_agent.harness import events as ev
 from design_agent.harness.notices import render
@@ -21,6 +20,7 @@ from design_agent.harness.watch import (
     WatchRecord,
     WatchRunner,
 )
+from design_agent.kit.store import InMemoryStore
 
 
 class Clock:

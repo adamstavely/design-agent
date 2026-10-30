@@ -10,17 +10,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from deepagents import create_deep_agent
-from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
-from langchain_core.tools import BaseTool
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.store.memory import InMemoryStore
-
 from design_agent.assembly import AgentComponents, build_agent_components
 from design_agent.config import Settings
 from design_agent.harness import notices
 from design_agent.harness.tasks import REGISTRY
+from design_agent.kit.checkpoint import InMemorySaver
+from design_agent.kit.deep import create_deep_agent
+from design_agent.kit.messages import AIMessage, BaseMessage, HumanMessage
+from design_agent.kit.models import BaseChatModel
+from design_agent.kit.store import InMemoryStore
+from design_agent.kit.tools import BaseTool
 from design_agent.middleware.background import BackgroundServices
 from design_agent.middleware.watch_tools import WATCHES
 from design_agent.runtime.profiles import RuntimeProfile
@@ -32,7 +31,7 @@ from design_agent.tools.mcp import McpServer
 Replies = Callable[[str, str], None]
 
 GRAPH_NAME = "design-agent"
-#: deepagents' own ceiling, as on MDA; `StepBudgetMiddleware` wraps a turn up just before it.
+#: The agent loop's step ceiling; `StepBudgetMiddleware` wraps a turn up just before it.
 DEFAULT_RECURSION_LIMIT = 9_999
 
 
@@ -133,7 +132,7 @@ class LocalRuntime:
     async def attach(self, thread_id: str, files: Sequence[tuple[str, bytes]]) -> list[str]:
         """Put files in the thread's `/workspace/attachments/`, where a channel puts what people
         drop in a thread. Returns their sandbox paths."""
-        from langchain_core.runnables.config import var_child_runnable_config
+        from design_agent.kit.config import var_child_runnable_config
 
         placed = [(f"/workspace/attachments/{Path(name).name}", content) for name, content in files]
         token = var_child_runnable_config.set({"configurable": {"thread_id": thread_id}})

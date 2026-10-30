@@ -31,8 +31,8 @@ sandbox instead.
 
 | `PAPER_MODE` | When | How |
 | --- | --- | --- |
-| `local` | the agent runs on the machine with Paper Desktop (CLI, self-hosted on that machine) | stdio `paper mcp`, found in `~/.paper/bin` or on `PATH`; or `PAPER_MCP_URL=http://127.0.0.1:29979/mcp` for the legacy endpoint. Not available on Managed Deep Agents, which runs no stdio servers and cannot reach your loopback. |
-| `bridged` | the agent runs elsewhere (MDA, a server) and Paper Desktop runs on a machine you control | `design-agent paper-bridge` in front of your Paper Desktop, reached over a tunnel you own, with a bearer token |
+| `local` | the agent runs on the machine with Paper Desktop (CLI, self-hosted on that machine) | stdio `paper mcp`, found in `~/.paper/bin` or on `PATH`; or `PAPER_MCP_URL=http://127.0.0.1:29979/mcp` for the legacy endpoint. |
+| `bridged` | the agent runs elsewhere (a server) and Paper Desktop runs on a machine you control | `design-agent paper-bridge` in front of your Paper Desktop, reached over a tunnel you own, with a bearer token |
 | hosted worker | a team wants an always-on shared Paper session | a documented recipe, not wired by default: [paper-hosted-worker.md](paper-hosted-worker.md) |
 | `off` (default) | Paper not set up | boards render in the sandbox and are attached to the thread |
 
@@ -84,14 +84,12 @@ On the agent's side:
 ```bash
 PAPER_MODE=bridged
 PAPER_MCP_URL=https://paper.example.com/mcp
-PAPER_BRIDGE_TOKEN=<same token>     # local and self-hosted
+PAPER_BRIDGE_TOKEN=<same token>
 PAPER_DRAFTS_FILE_ID=<drafts file id>
 PAPER_BRAND_FILE_ID=<brand file id>
 ```
 
-On Managed Deep Agents the token is not shipped in the deployment: create an agent-owned workspace
-connection named `paper-bridge` holding it, and MDA sends it at call time. `PAPER_MCP_URL` must be
-the tunnel's `https` address.
+`PAPER_MCP_URL` must be the tunnel's `https` address.
 
 What the bridge checks, in order, before anything reaches Paper: the request's `Host` (and any
 browser `Origin`) is loopback or a hostname you allowed, which stops DNS rebinding; the bearer

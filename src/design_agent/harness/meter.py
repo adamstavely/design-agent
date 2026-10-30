@@ -7,16 +7,13 @@ its money writing cache. A job's cost is kept per source
 
 - `load_prices(path)`: list prices per million tokens from `config/prices.toml`, each with the date
   it was checked and its public source. Every figure is an estimate.
-- `cost_of(usage, model)`: one call's `Cost`, from LangChain's `usage_metadata` (the Anthropic
+- `cost_of(usage, model)`: one call's `Cost`, from a message's `usage_metadata` (the Anthropic
   API's own `usage` works too). Cache writes are priced by their TTL when the usage splits them
   (`ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens`), else at `write_ttl`; a prompt past
   a model's long-context threshold pays its long-context prices.
 - `Meter`: subscribes to `USAGE` events on the bus and sums them per thread, source and role.
 - `CURRENT_TASK_ID`: the helper whose code is running. The adapter that runs helpers sets it, so
   a model call is billed to the helper that made it; unset, a call is the lead's.
-
-Deep Agents has no meter; LangSmith prices traces after the fact. Upstream, this is a callback or
-middleware beside the prompt-caching middleware.
 """
 
 from __future__ import annotations
@@ -191,9 +188,9 @@ class Tokens:
 
 
 def usage_tokens(usage: Mapping[str, Any], *, write_ttl: str = "5m") -> Tokens:
-    """Token counts from LangChain's `usage_metadata` or the Anthropic API's `usage`.
+    """Token counts from a message's `usage_metadata` or the Anthropic API's `usage`.
 
-    LangChain's `input_tokens` already includes cache reads and writes, with the detail in
+    `usage_metadata`'s `input_tokens` already includes cache reads and writes, with the detail in
     `input_token_details`; the API's `input_tokens` is only the uncached part. A write the usage
     does not split by TTL is counted at `write_ttl`.
     """

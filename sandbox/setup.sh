@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# The designer's computer. One recipe serves MDA's deploy-time bake, `design-agent sandbox
-# publish` (sandbox/Dockerfile), the local Docker sandbox runner and CI.
+# The designer's computer. One recipe serves the sandbox image (sandbox/Dockerfile), which the
+# Docker sandbox runner and CI build.
 #
-# The bake cannot see this repository, so every input is pinned here and checksum-verified.
+# The build cannot see this repository, so every input is pinned here and checksum-verified.
 # Never write project files, skills, brand packs, user data, licensed fonts, credentials or
 # environment values into the image: they reach the sandbox at run time through the stager.
 #
-# Re-running the script on an image it already built only re-runs the probe, so MDA can bake
-# it on top of a snapshot published from the same recipe in seconds.
+# Re-running the script on an image it already built only re-runs the probe.
 set -euo pipefail
 
 readonly RECIPE_ROOT=/opt/design-agent
@@ -17,7 +16,7 @@ readonly FONT_DIR=/usr/local/share/fonts/design-agent
 readonly STAMP="$RECIPE_ROOT/recipe.sha256"
 
 readonly ARCH="$(dpkg --print-architecture)"
-# amd64 (MDA, CI): the Chrome Headless Shell build HyperFrames 0.8.169 pins (CHROME_VERSION in its
+# amd64 (servers, CI): the Chrome Headless Shell build HyperFrames 0.8.169 pins (CHROME_VERSION in its
 # CLI). arm64 (local Docker on Apple Silicon): Chrome for Testing has no linux-arm64 build and amd64
 # Chrome crashes under emulation, so use the pinned Playwright headless-shell build HyperFrames'
 # own render image uses (playwright-core 1.61.1, chromium revision 1228, Chrome 149).
@@ -270,7 +269,7 @@ fetch() {  # fetch <url> <dest> <sha256>: three attempts, then fail the bake
 install_system() {
   export DEBIAN_FRONTEND=noninteractive
   apt-get -o Acquire::Retries=5 update
-  # Chrome Headless Shell's shared libraries, ffmpeg, fontconfig, and the tools Deep Agents'
+  # Chrome Headless Shell's shared libraries, ffmpeg, fontconfig, and the tools the agent's
   # file tools and the workspace gates shell out to (python3, ripgrep, jq).
   apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
     ca-certificates curl unzip xz-utils procps python3 ripgrep jq woff2 \

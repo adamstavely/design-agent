@@ -19,6 +19,8 @@ maintainers' call.
    component, `NOTICE.md` is current, and `skills-lock.json` names each upstream license.
 5. Docs: every link resolves (`uv run pytest -q tests/unit/test_docs_links.py`), README quick start
    works from a clean clone, `CHANGELOG.md` has the release.
-6. `uv run mda build` from a clean checkout; inspect `.mda/build` and `.mda/__contexthub__`.
+6. From a clean checkout, `docker build -f deploy/self-host/Dockerfile .` and
+   `POSTGRES_PASSWORD=x docker compose -f deploy/self-host/compose.yaml config -q`; confirm no
+   LangChain-family package is in `uv.lock`.
 7. Human gates (SPEC §24): partner reviews (HyperFrames, Paper), legal review, sample-brand and
    gallery review. Record who signed off outside the repository.

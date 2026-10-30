@@ -1,10 +1,9 @@
 """A footer line under the lead's replies in a Slack thread while it has work in the background.
 
-It says only what changes. While work runs: `Trace • 2 agents running • render 45%, ~6 min left
+It says only what changes. While work runs: `2 agents running • render 45%, ~6 min left
 • 12 min • ~$12.40 so far`, redrawn as the work moves; under the reply that closes the job it
-settles to `Trace • 3 agents • 14 min • ~$18.20 total`. Cost is the meter's estimate
-(`METER.summary`), counted from the job's start; "Trace" links the trace of the run that wrote
-the reply, and appears only when `DESIGN_AGENT_TRACE_HOST` is set (`middleware/tracing.py`).
+settles to `3 agents • 14 min • ~$18.20 total`. Cost is the meter's estimate (`METER.summary`),
+counted from the job's start.
 
 A turn with nothing in the background gets no footer: a footer is a message of its own, and one
 under every reply would be a second notification each time. Nor does a `[quiet]` turn, a turn
@@ -33,14 +32,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from langchain.agents.middleware import AgentMiddleware, AgentState
-
 from design_agent.harness import tasks
 from design_agent.harness.inbox import Inbox
 from design_agent.harness.notices import QUIET, should_post
+from design_agent.kit.middleware import AgentMiddleware, AgentState
 from design_agent.middleware.meter import METER
 from design_agent.middleware.progress import posted_reply
-from design_agent.middleware.tracing import TraceLinks, TraceRoot, current_root
 from design_agent.surfaces.slack.client import SlackClient, SlackError
 from design_agent.surfaces.slack.target import SlackBinding, SlackSurface, thread_of
 
@@ -60,7 +57,6 @@ State = Literal["live", "snapshot", "done"]
 
 
 def footer_line(
-    trace: str,
     state: State,
     *,
     usd: float,
@@ -71,7 +67,7 @@ def footer_line(
 ) -> str:
     """The footer in Slack markup: `live` while the job runs, `done` once it has, `snapshot` for
     an older footer a newer reply took over. `usd` is the job's estimated cost so far."""
-    parts = [f"<{trace}|Trace>"] if trace else []
+    parts: list[str] = []
     if state == "live":
         # A watched job in the sandbox is not an agent: its progress says it is running.
         if running:
@@ -130,7 +126,6 @@ def busy(thread_id: str) -> bool:
 class _Footer:
     channel: str
     ts: str
-    trace: str
     text: str = ""
     #: Still saying the job is running; a newer footer turns it into a snapshot.
     live: bool = True
@@ -154,8 +149,7 @@ class Footers:
     """The footers of every thread this process answers in (module doc). `inbox` tells whether
     news of the job is still on its way to the lead, which keeps the job open."""
 
-    def __init__(self, *, traces: TraceLinks | None = None, inbox: Inbox | None = None) -> None:
-        self._traces = traces
+    def __init__(self, *, inbox: Inbox | None = None) -> None:
         self._inbox = inbox
         self._jobs: dict[str, _Job] = {}
         #: Strong references to the work a run's end starts, which outlives the run.
@@ -166,7 +160,6 @@ class Footers:
         thread_id: str,
         binding: SlackBinding,
         *,
-        root: TraceRoot | None,
         started: float,
         usd_at_start: float,
         ended: float,
@@ -174,7 +167,7 @@ class Footers:
     ) -> None:
         """Post the footer under the reply this run is about to get, and keep it live."""
         task = asyncio.get_running_loop().create_task(
-            self._after_run(thread_id, binding, root, started, usd_at_start, ended, store),
+            self._after_run(thread_id, binding, started, usd_at_start, ended, store),
             name=f"footer {thread_id}",
         )
         self._pending.add(task)
@@ -197,7 +190,6 @@ class Footers:
         self,
         thread_id: str,
         binding: SlackBinding,
-        root: TraceRoot | None,
         started: float,
         usd_at_start: float,
         ended: float,
@@ -212,7 +204,6 @@ class Footers:
         try:
             if not await _reply_landed(binding, after=ended):
                 return
-            trace = await self._traces.url(root) if self._traces is not None else ""
             job = self._jobs.setdefault(thread_id, _Job(client, store))
             job.client, job.store = client, job.store or store
             async with job.lock:
@@ -223,7 +214,7 @@ class Footers:
                     return  # the job settled while the reply was on its way
                 # Never the totals straight away: more news may be on its way, and the job's
                 # last reply is the one they go under. The loop settles the newest footer.
-                text = self._line(thread_id, job, trace, "live")
+                text = self._line(thread_id, job, "live")
                 posted = await client.call(
                     "chat.postMessage",
                     {
@@ -236,7 +227,6 @@ class Footers:
                 job.footer = _Footer(
                     str(posted.get("channel") or target.channel),
                     str(posted.get("ts") or ""),
-                    trace,
                     text,
                 )
                 await _save(thread_id, job)
@@ -246,7 +236,7 @@ class Footers:
         except SlackError as error:
             _LOGGER.warning("[footer] not posted: %s", error.code)
 
-    def _line(self, thread_id: str, job: _Job, trace: str, state: State) -> str:
+    def _line(self, thread_id: str, job: _Job, state: State) -> str:
         started = job.started or time.time()
         agents = [
             r
@@ -254,7 +244,6 @@ class Footers:
             if r.thread_id == thread_id and r.started_at >= started
         ]
         return footer_line(
-            trace,
             state,
             usd=METER.summary(thread_id).usd - job.usd_base,
             running=len(tasks.running(thread_id)),
@@ -275,7 +264,7 @@ class Footers:
         if footer is None or not footer.live:
             return
         usd = METER.summary(thread_id).usd - job.usd_base
-        await self._draw(thread_id, job, footer, footer_line(footer.trace, "snapshot", usd=usd))
+        await self._draw(thread_id, job, footer, footer_line("snapshot", usd=usd))
         footer.live = False
 
     async def _follow(self, thread_id: str, job: _Job) -> None:
@@ -287,7 +276,7 @@ class Footers:
             footer = job.footer
             if footer is None:
                 return
-            live = self._line(thread_id, job, footer.trace, "live")
+            live = self._line(thread_id, job, "live")
             if busy(thread_id) or self.news_pending(thread_id):
                 idle_since = None
                 await self._draw(thread_id, job, footer, live)
@@ -296,7 +285,7 @@ class Footers:
             if time.monotonic() - idle_since < SETTLE_SECONDS:
                 await self._draw(thread_id, job, footer, live)
                 continue
-            done = self._line(thread_id, job, footer.trace, "done")
+            done = self._line(thread_id, job, "done")
             footer.live, job.started = False, None
             await self._draw(thread_id, job, footer, done)
             await _save(thread_id, job)
@@ -365,7 +354,6 @@ async def _save(thread_id: str, job: _Job) -> None:
         "footer": {
             "channel": footer.channel,
             "ts": footer.ts,
-            "trace": footer.trace,
             "text": footer.text,
             "live": footer.live,
         }
@@ -404,7 +392,6 @@ async def _adopt(store: Any, thread_id: str, client: SlackClient) -> _Job | None
         job.footer = _Footer(
             channel=str(saved.get("channel") or ""),
             ts=str(saved["ts"]),
-            trace=str(saved.get("trace") or ""),
             text=str(saved.get("text") or ""),
             live=bool(saved.get("live")),
         )
@@ -450,7 +437,6 @@ class ReplyFooterMiddleware(AgentMiddleware[AgentState[Any], Any, Any]):
         self.footers.after_run(
             thread_id,
             binding,
-            root=current_root(),
             started=started,
             usd_at_start=usd,
             ended=time.time(),

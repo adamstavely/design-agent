@@ -19,11 +19,10 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
-from langchain.tools import ToolRuntime
-from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import JsonValue
 
 from design_agent.config import Settings
+from design_agent.kit.tools import BaseTool, StructuredTool, ToolRuntime
 from design_agent.tools.files import (
     BackendFor,
     WorkspaceError,

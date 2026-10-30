@@ -8,10 +8,8 @@ import re
 from datetime import datetime
 from typing import Any
 
-from deepagents.backends.protocol import BackendProtocol, FileInfo
-from langchain.tools import ToolRuntime
-from langchain_core.tools import BaseTool, StructuredTool
-
+from design_agent.kit.deep.backends import BackendProtocol, FileInfo
+from design_agent.kit.tools import BaseTool, StructuredTool, ToolRuntime
 from design_agent.tools.files import BackendFor, WorkspaceError, read_bytes, require_backend
 
 PROJECTS_ROOT = "/workspace/projects"

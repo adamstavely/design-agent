@@ -10,10 +10,10 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from langchain.agents.middleware import ModelResponse
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from design_agent.harness import tasks
+from design_agent.kit.messages import AIMessage, HumanMessage, ToolMessage
+from design_agent.kit.middleware import ModelResponse
 from design_agent.middleware import progress as progress_module
 from design_agent.middleware.progress import HelperProgressMiddleware, ThreadProgressMiddleware
 from design_agent.surfaces.slack import stream as stream_module

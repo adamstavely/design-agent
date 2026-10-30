@@ -77,10 +77,9 @@ def ask(request: str, thread_id: str | None, no_wait: bool, files: tuple[Path, .
 async def _ask(
     root: Path, request: str, thread: str, *, wait: bool, files: tuple[Path, ...] = ()
 ) -> int:
-    from langchain_core.messages import AIMessage
-
     from design_agent.doctor import missing_model_key
     from design_agent.harness.meter import Meter
+    from design_agent.kit.messages import AIMessage
     from design_agent.runtime.local import build_local_runtime, final_text
     from design_agent.runtime.persistence import open_persistence, workspace_of
     from design_agent.tools.mcp import load_mcp_tools, servers_for_runtime
@@ -391,7 +390,7 @@ def slack_command() -> None:
 
 @main.group()
 def sandbox() -> None:
-    """Build, test and publish the designer's computer."""
+    """Build and test the designer's computer."""
 
 
 @sandbox.command("build")
@@ -428,7 +427,7 @@ def sandbox_test() -> None:
 
 @main.group()
 def skills() -> None:
-    """Vendored upstream skills (HyperFrames, LangSmith, Deep Agents)."""
+    """Vendored upstream skills (HyperFrames)."""
 
 
 @skills.command("verify")
@@ -449,7 +448,7 @@ def skills_verify() -> None:
     "--upstream",
     "only",
     default=None,
-    help="Re-vendor one upstream (hyperframes, langsmith-skills, langchain-skills); default all.",
+    help="Re-vendor one upstream (hyperframes); default all.",
 )
 @click.option("--commit", default=None, help="That upstream's commit (default: the pinned one).")
 @click.option("--release", default=None, help="Release tag the commit belongs to.")
@@ -506,38 +505,6 @@ def manifest() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-@sandbox.command("publish")
-@click.option("--fs-gib", default=16, show_default=True, help="Filesystem size of the snapshot.")
-@click.option("--yes", is_flag=True, help="Publish without asking.")
-def sandbox_publish(fs_gib: int, yes: bool) -> None:
-    """Build the computer as a LangSmith snapshot and declare it in sandbox/__init__.py."""
-    from langsmith.sandbox import SandboxClient
-
-    from design_agent.runtime.sandbox.publish import PublishError, declare_snapshot, publish
-
-    settings = Settings()
-    if settings.langsmith_api_key is None:
-        click.echo(
-            "LANGSMITH_API_KEY is not set; publishing needs your LangSmith workspace.", err=True
-        )
-        sys.exit(1)
-    if not yes and not click.confirm(
-        f"This builds a {fs_gib} GiB snapshot in your LangSmith workspace (sandbox time is billed). Continue?"
-    ):
-        sys.exit(1)
-    client = SandboxClient(api_key=settings.langsmith_api_key.get_secret_value())
-    try:
-        published = publish(client, _root(), fs_gib=fs_gib, say=click.echo)
-    except PublishError as error:
-        click.echo(f"Not published: {error}", err=True)
-        sys.exit(1)
-    declare_snapshot(_root(), published.snapshot_name)
-    click.echo(f"Published {published.snapshot_name}; sandbox/__init__.py now declares it.")
-    click.echo(
-        f"Local and self-hosted LangSmith sandboxes: DESIGN_AGENT_SANDBOX_SNAPSHOT={published.snapshot_name}"
-    )
 
 
 @brand.command("init")
@@ -605,18 +572,6 @@ def fonts_verify() -> None:
     for problem in problems:
         click.echo(problem, err=True)
     sys.exit(1 if problems else 0)
-
-
-@sandbox.command("use")
-@click.argument("snapshot")
-def sandbox_use(snapshot: str) -> None:
-    """Use LangSmith sandboxes from a published snapshot for local and self-hosted runs."""
-    from design_agent.envfile import write_env
-
-    write_env(
-        _root(), {"DESIGN_AGENT_SANDBOX": "langsmith", "DESIGN_AGENT_SANDBOX_SNAPSHOT": snapshot}
-    )
-    click.echo(f"Local and self-hosted runs now clone {snapshot} (DESIGN_AGENT_SANDBOX=langsmith).")
 
 
 @main.group("test")

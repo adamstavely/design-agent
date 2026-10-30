@@ -1,8 +1,7 @@
 """Sandbox backends for the local and self-hosted runtimes, and how they are chosen.
 
-MDA brings its own per-thread sandbox; these are the other three: the Docker runner (default when
-Docker answers), LangSmith Sandboxes from a published snapshot, and the host (development only,
-explicit flag). Each binding gives the graph its backend, host tools their file access, and the
+Two are available: the Docker runner (the default when Docker answers) and the host (development
+only, explicit flag). Each binding gives the graph its backend, host tools their file access, and the
 stager its target.
 """
 
@@ -12,16 +11,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from deepagents.backends import CompositeBackend, FilesystemBackend
-from deepagents.backends.protocol import (
+from design_agent.config import Settings
+from design_agent.kit.deep.backends import (
     BackendProtocol,
+    CompositeBackend,
     DeleteResult,
     EditResult,
+    FilesystemBackend,
     FileUploadResponse,
     WriteResult,
 )
-
-from design_agent.config import Settings
 from design_agent.middleware.workspace import BackendTarget, StagingTarget
 from design_agent.runtime.sandbox.docker import (
     DockerLimits,
@@ -31,11 +30,11 @@ from design_agent.runtime.sandbox.docker import (
 )
 
 SKILLS_ROUTE = "/skills/"
+MEMORY_ROUTE = "/memories/agent/"
 
 
 class ReadOnlyFilesystemBackend(FilesystemBackend):
-    """A host folder the agent may read but never change (the local stand-in for MDA's
-    read-only Context Hub skills mount)."""
+    """A host folder the agent may read but never change (the read-only `/skills/` mount)."""
 
     _REFUSAL = "permission_denied: this folder is read-only"
 
@@ -81,9 +80,17 @@ class SandboxBinding:
         return self.sandbox
 
 
-def _with_skills(sandbox: BackendProtocol, project_root: Path) -> CompositeBackend:
+def _with_skills(
+    sandbox: BackendProtocol, project_root: Path, memory: Path | None = None
+) -> CompositeBackend:
+    """The sandbox, with `/skills/` read-only and, when given, `/memories/agent/` on the host
+    folder `memory`, so team notes outlive the sandbox and every thread."""
     skills = ReadOnlyFilesystemBackend(root_dir=project_root / "skills", virtual_mode=True)
-    return CompositeBackend(default=sandbox, routes={SKILLS_ROUTE: skills})
+    routes: dict[str, BackendProtocol] = {SKILLS_ROUTE: skills}
+    if memory is not None:
+        memory.mkdir(parents=True, exist_ok=True)
+        routes[MEMORY_ROUTE] = FilesystemBackend(root_dir=memory, virtual_mode=True)
+    return CompositeBackend(default=sandbox, routes=routes)
 
 
 def docker_binding(settings: Settings, project_root: Path) -> SandboxBinding:
@@ -95,23 +102,25 @@ def docker_binding(settings: Settings, project_root: Path) -> SandboxBinding:
     sandbox = DockerSandboxBackend(runner)
     return SandboxBinding(
         name="docker",
-        graph_backend=_with_skills(sandbox, project_root),
+        graph_backend=_with_skills(
+            sandbox, project_root, settings.resolved_memory_path(project_root)
+        ),
         sandbox=sandbox,
         staging=DockerStagingTarget(runner),
         runner=runner,
     )
 
 
-def host_binding(project_root: Path) -> SandboxBinding:
+def host_binding(project_root: Path, memory: Path | None = None) -> SandboxBinding:
     """Development only: renderers run on this machine, inside `<root>/.host-sandbox/`."""
-    from deepagents.backends import LocalShellBackend
+    from design_agent.kit.deep.backends import LocalShellBackend
 
     root = project_root / ".host-sandbox"
     (root / "workspace").mkdir(parents=True, exist_ok=True)
     sandbox = LocalShellBackend(root_dir=root, virtual_mode=True, inherit_env=False)
     return SandboxBinding(
         name="host",
-        graph_backend=_with_skills(sandbox, project_root),
+        graph_backend=_with_skills(sandbox, project_root, memory),
         sandbox=sandbox,
         staging=BackendTarget(sandbox),
     )
@@ -120,24 +129,14 @@ def host_binding(project_root: Path) -> SandboxBinding:
 def select_binding(settings: Settings, project_root: Path) -> SandboxBinding:
     """The configured sandbox, or for `auto` the Docker runner when Docker and the image exist."""
     choice = settings.sandbox
-    if choice == "mda":
-        raise SandboxSelectionError("the mda sandbox exists only inside a Managed Deep Agents run")
     if choice == "host":
-        return host_binding(project_root)
-    if choice == "langsmith":
-        from design_agent.runtime.sandbox.langsmith import langsmith_binding
-
-        return langsmith_binding(settings, project_root)
+        return host_binding(project_root, settings.resolved_memory_path(project_root))
     binding = docker_binding(settings, project_root)
     runner = binding.runner
     ok, reason = runner.available() if runner is not None else (False, "no runner")
     if ok:
         return binding
-    if choice == "auto" and settings.langsmith_api_key and settings.sandbox_snapshot:
-        from design_agent.runtime.sandbox.langsmith import langsmith_binding
-
-        return langsmith_binding(settings, project_root)
     raise SandboxSelectionError(
-        f"No sandbox is available: {reason}. Install Docker and build the image, or set "
-        "LANGSMITH_API_KEY and DESIGN_AGENT_SANDBOX_SNAPSHOT for LangSmith Sandboxes."
+        f"No sandbox is available: {reason}. Install Docker and build the image "
+        "(`design-agent sandbox build`)."
     )

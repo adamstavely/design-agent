@@ -22,11 +22,11 @@ from typing import Any
 import pytest
 from fastmcp import Client, FastMCP
 from fastmcp.utilities.types import Image
-from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
-from langchain_core.tools import BaseTool
 
 from design_agent.config import Settings
 from design_agent.harness.tasks import REGISTRY
+from design_agent.kit.messages import AIMessage, BaseMessage, ToolMessage
+from design_agent.kit.tools import BaseTool
 from design_agent.middleware.image_clamp import ImageClampMiddleware
 from design_agent.middleware.paper_scope import PaperScopeMiddleware
 from design_agent.runtime.local import LocalRuntime, build_local_runtime
@@ -43,7 +43,6 @@ from design_agent.tools.paper import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-pytestmark = pytest.mark.filterwarnings("ignore::langchain_core._api.LangChainBetaWarning")
 BRAND = "01BRANDFILE000"
 DRAFTS = "01DRAFTSFILE00"
 PROJECT = "launch-teaser"
@@ -114,7 +113,7 @@ async def load_fake(server: FastMCP) -> tuple[McpServer, list[BaseTool]]:
     declared = McpServer("paper", "", transport="stdio", command=("paper", "mcp"))
 
     async def loader(entry: McpServer, _env: object) -> list[BaseTool]:
-        from langchain.mcp import MCPAdapter  # the runtime's own adapter (tools/mcp.py)
+        from design_agent.kit.mcp import MCPAdapter  # the runtime's own adapter (tools/mcp.py)
 
         async with MCPAdapter(server) as adapter:
             tools = await adapter.list_tools()

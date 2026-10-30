@@ -7,7 +7,6 @@ URL or a Slack payload; the agent only sees files and messages the middleware wr
 from design_agent.surfaces.slack.client import SlackClient, SlackError
 from design_agent.surfaces.slack.target import (
     BoltSlackResolver,
-    MdaSlackResolver,
     SlackBinding,
     SlackResolver,
     SlackSurface,
@@ -16,7 +15,6 @@ from design_agent.surfaces.slack.target import (
 
 __all__ = [
     "BoltSlackResolver",
-    "MdaSlackResolver",
     "SlackBinding",
     "SlackClient",
     "SlackError",

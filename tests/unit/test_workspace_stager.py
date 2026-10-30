@@ -10,9 +10,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from deepagents.backends.protocol import ExecuteResponse
 
 from design_agent.brand.schema import load_brand_pack
+from design_agent.kit.deep.backends import ExecuteResponse
 from design_agent.middleware.workspace import (
     MARKER,
     StagingError,

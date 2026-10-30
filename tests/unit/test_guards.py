@@ -15,10 +15,10 @@ from typing import Any
 import anthropic
 import httpx
 import pytest
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
-from langchain_core.tools import tool
 from PIL import Image
 
+from design_agent.kit.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from design_agent.kit.tools import tool
 from design_agent.middleware import model_retry
 from design_agent.middleware.image_clamp import _clamp_block
 from design_agent.middleware.skill_list import load_summaries, summarized

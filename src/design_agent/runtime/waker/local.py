@@ -32,7 +32,7 @@ class InProcessWaker:
     start_timeout_seconds: float = START_TIMEOUT_SECONDS
     #: How a check-in waits for its time (tests make it instant).
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep
-    #: Where check-ins are kept across restarts (a LangGraph store); None keeps them in memory.
+    #: Where check-ins are kept across restarts (a kit store); None keeps them in memory.
     store: Any | None = None
     _seen: set[str] = field(default_factory=set)
     _timers: dict[str, asyncio.Task[None]] = field(default_factory=dict)

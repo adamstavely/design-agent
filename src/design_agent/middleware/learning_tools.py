@@ -21,9 +21,6 @@ import logging
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from langchain.agents.middleware import AgentMiddleware
-from langchain.tools import ToolRuntime, tool
-
 from design_agent.harness import events as ev
 from design_agent.harness.learning import (
     ObservationStore,
@@ -34,6 +31,8 @@ from design_agent.harness.learning import (
     skill_key,
 )
 from design_agent.harness.protocols import HelperRunner
+from design_agent.kit.middleware import AgentMiddleware
+from design_agent.kit.tools import ToolRuntime, tool
 
 _LOGGER = logging.getLogger(__name__)
 

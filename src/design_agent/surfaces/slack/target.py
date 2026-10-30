@@ -2,18 +2,12 @@
 
 A resolver turns a run's runtime into a `SlackTarget` (channel, thread, workspace, the person the
 stream is shown to, and the message that started the run) and hands out a `SlackClient` on the
-bot token. Two are provided:
+bot token. `BoltSlackResolver`, for the self-hosted Slack adapter, takes the bot token it is given
+and the Bolt event the adapter put on the run (`slack_event` in the run's context or configurable).
 
-- `MdaSlackResolver`, on public Managed Deep Agents APIs only: the target comes from
-  `runtime.channel` (a `RuntimeChannel`) when its provider is Slack and its event is a message,
-  read from the Slack event MDA verified and passed as `raw_event`; the token comes from the
-  reserved agent connection `mda/slack-bot-token`, awaited inside a run.
-- `BoltSlackResolver`, for the self-hosted Slack adapter: a bot token it is given, and the Bolt
-  event the adapter put on the run (`slack_event` in the run's context or configurable).
-
-`SlackSurface` is what middleware holds. It resolves per call and remembers each LangGraph
-thread's latest target, because a run that answers no message (an MDA wake-up schedule, the turn
-after an approval) carries no Slack event but still posts into the same thread, and because a
+`SlackSurface` is what middleware holds. It resolves per call and remembers each thread's latest
+target, because a run that answers no message (a wake-up) carries no Slack event but still posts
+into the same thread, and because a
 background helper's run has no channel at all: it works after the lead's turn ended, so it reads
 the target and client the lead's run resolved. The token stays in this process's memory; it is
 never written to the store, the ledger or a wake-up target.
@@ -29,16 +23,14 @@ from dataclasses import dataclass, replace
 from typing import Any, Protocol
 
 import httpx
-from langgraph.config import get_config
 from pydantic import SecretStr
 
+from design_agent.kit.config import get_config
 from design_agent.surfaces.slack.client import SlackClient
 from design_agent.surfaces.slack.followups import FollowUpReader
 
 _LOGGER = logging.getLogger(__name__)
 
-#: MDA's reserved agent connection holding the Slack app's bot token.
-MDA_BOT_TOKEN = "mda/slack-bot-token"  # noqa: S105 - a connection name, not a secret
 #: Threads whose latest target this process remembers.
 THREADS_KEPT = 512
 
@@ -116,12 +108,6 @@ class SlackResolver(Protocol):
 TokenSource = Callable[[], Awaitable[str]]
 
 
-async def _mda_token() -> str:
-    from managed_deepagents import connections
-
-    return str(await connections.get(MDA_BOT_TOKEN, {"type": "agent"}))
-
-
 class _TokenClients:
     """One client per token, replaced once Slack says the token is no good."""
 
@@ -147,30 +133,6 @@ class _TokenClients:
             await self._client.aclose()
         self._client = SlackClient(token, transport=self._transport)
         return self._client
-
-
-class MdaSlackResolver:
-    """Managed Deep Agents: `runtime.channel.raw_event` and the managed bot token (module doc)."""
-
-    def __init__(
-        self,
-        *,
-        token: TokenSource = _mda_token,
-        transport: httpx.AsyncBaseTransport | None = None,
-    ) -> None:
-        self._clients = _TokenClients(token, transport)
-
-    async def target(self, runtime: Any) -> SlackTarget | None:
-        channel = getattr(runtime, "channel", None)
-        if channel is None or getattr(channel, "provider", None) != "slack":
-            return None
-        event = getattr(channel, "event", None)
-        if not isinstance(event, Mapping) or event.get("type") != "message":
-            return None
-        return target_from_event(getattr(channel, "raw_event", None))
-
-    async def client(self) -> SlackClient | None:
-        return await self._clients.client()
 
 
 def event_on_run(runtime: Any) -> Mapping[str, Any] | None:
@@ -216,7 +178,7 @@ class BoltSlackResolver:
 
 
 def thread_of(runtime: Any = None) -> str:
-    """The run's LangGraph thread id, from the ambient run config or the runtime's own."""
+    """The run's thread id, from the ambient run config or the runtime's own."""
     try:
         config: Mapping[str, Any] = get_config()
     except RuntimeError:

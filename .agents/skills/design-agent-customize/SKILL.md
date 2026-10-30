@@ -23,20 +23,19 @@ asset after it follows:
 Start with the graphic the team asks for every week.
 
 1. Read two skills close to it (`skills/stills/`, `skills/thumbnails/`) and `skills/design-wiki/SKILL.md`.
-2. Create `skills/<name>/SKILL.md` as a real folder one level deep (MDA does not follow symlinks
-   there). Frontmatter: `name` is the folder; `description` says when to use it, in the words
+2. Create `skills/<name>/SKILL.md` as a real folder one level deep (the skill scan reads only
+   `skills/<name>/SKILL.md`). Frontmatter: `name` is the folder; `description` says when to use it, in the words
    people use when they ask. Body: what good looks like, sizes, steps, the checks to run. Put depth
    in `references/` and keep the body small. Text only: binary files (fonts, images) go in
-   `skill-binaries/<name>/`, because Context Hub takes only UTF-8 text; the stager puts them back
-   beside the skill in the sandbox.
+   `skill-binaries/<name>/`; the stager puts them back beside the skill in the sandbox.
 3. No brand facts, colours or libraries from a CDN in the skill: the brand pack supplies them.
 4. `uv run pytest -q tests/unit/test_taste_skills.py tests/unit/test_media_skills.py` checks
    frontmatter, size, links, and that every tool, script and check it names exists.
 5. Try it with the request people actually send: `uv run design-agent ask "…"`. Look at the files.
 6. Add an eval task if it matters ([design-agent-evals](../design-agent-evals/SKILL.md)), then
-   redeploy ([design-agent-deploy](../design-agent-deploy/SKILL.md)).
+   restart the team's services ([design-agent-deploy](../design-agent-deploy/SKILL.md)).
 
-Vendored skills (HyperFrames and LangSmith, listed in `skills-lock.json`) are never edited: override them in a
+Vendored skills (HyperFrames, listed in `skills-lock.json`) are never edited: override them in a
 sibling skill of ours, or send the change upstream.
 
 ## Instructions, doctrine and checks
@@ -48,11 +47,11 @@ sibling skill of ours, or send the change upstream.
 
 ## Tools
 
-- **MCP servers:** copy `config/mcp.example.toml` to `config/mcp.toml` and declare servers. Locally,
-  header values come from the environment (`headers_env`); on MDA a server that needs credentials
-  names a workspace connection (`connection`), owned by the deployment or each person (`owner`).
-  The example file has presets for Notion, Linear, GitHub, Figma and others
-  ([integrations](../../../docs/integrations.md)). MDA serves HTTP and SSE only. Paper is configured
+- **MCP servers:** copy `config/mcp.example.toml` to `config/mcp.toml` and declare servers. A
+  server that needs credentials gets headers from the host environment (`headers_env`, usually
+  `Authorization = "…_MCP_AUTHORIZATION"` holding `Bearer <token>`); `connection` and `owner` are
+  rejected. The example file has presets for Notion, Linear, GitHub and Figma
+  ([integrations](../../../docs/integrations.md)). HTTP, SSE and stdio all work. Paper is configured
   with `PAPER_*`, not here ([Paper](../../../docs/partners/paper.md)).
 - **Media keys:** `OPENAI_API_KEY` (images), `ELEVENLABS_API_KEY` (voice, music, sound effects),
   `GROQ_API_KEY` (transcription).

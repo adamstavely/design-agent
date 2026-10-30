@@ -12,11 +12,11 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 
 import pytest
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
 from design_agent.config import Settings
 from design_agent.harness import inbox as inbox_module
 from design_agent.harness.tasks import REGISTRY
+from design_agent.kit.messages import AIMessage, BaseMessage, HumanMessage
 from design_agent.middleware.today import DATE_NOTE
 from design_agent.runtime.local import LocalRuntime, build_local_runtime
 from design_agent.testing.fakes import folder_binding
@@ -173,10 +173,9 @@ async def test_a_restart_reports_the_helper_interrupted_and_resume_continues_its
 ) -> None:
     import threading
 
-    from langgraph.checkpoint.memory import InMemorySaver
-    from langgraph.store.memory import InMemoryStore
-
     from design_agent.harness import ledger
+    from design_agent.kit.checkpoint import InMemorySaver
+    from design_agent.kit.store import InMemoryStore
 
     store, checkpointer = InMemoryStore(), InMemorySaver()
     release = threading.Event()

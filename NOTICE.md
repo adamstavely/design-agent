@@ -7,17 +7,19 @@ Design Agent is Copyright 2026 LangChain, Inc., licensed under the Apache Licens
 
 Design Agent is the open-source version of LangChain's internal design and motion agent
 (internal codename "Content Studio"). Its harness, middleware and gates were ported from that
-agent through an allowlist with names, identifiers and company content removed. Parts of the
-Managed Deep Agents project layout descend from the `managed-deepagents-sdk` example application;
-that code's MIT notice is preserved in [licenses/managed-deepagents-sdk-MIT.txt](licenses/managed-deepagents-sdk-MIT.txt).
+agent through an allowlist with names, identifiers and company content removed. LangChain built
+and open-sourced it at [langchain-ai/design-agent](https://github.com/langchain-ai/design-agent).
+
+This repository is a fork of that project. It replaces the original Deep Agents and Managed Deep
+Agents runtime with a small agent runtime of its own (`src/design_agent/kit/`) over the Anthropic
+and OpenAI SDKs, and runs self-hosted only. The changes are listed in [CHANGELOG.md](CHANGELOG.md)
+and are released under the same Apache License 2.0.
 
 ## Third-party components
 
 | Component | Where | License |
 | --- | --- | --- |
 | HyperFrames agent skills (HeyGen), vendored unmodified at release v0.8.169 | `skills/` entries listed in `skills-lock.json` | Apache-2.0, [licenses/hyperframes-LICENSE.txt](licenses/hyperframes-LICENSE.txt) |
-| LangSmith agent skills (LangChain), vendored unmodified at commit 1fb52e836f2d | `skills/langsmith-trace`, `.agents/skills/langsmith-dataset`, `.agents/skills/langsmith-evaluator` | MIT, [licenses/langsmith-skills-LICENSE.txt](licenses/langsmith-skills-LICENSE.txt) |
-| Deep Agents agent skills (LangChain), vendored unmodified at commit 16a992f09ab3 | `.agents/skills/deep-agents-*`, `.agents/skills/managed-deep-agents` | MIT, [licenses/langchain-skills-LICENSE.txt](licenses/langchain-skills-LICENSE.txt) |
 | HyperFrames CLI | installed in the sandbox image, not redistributed here | Apache-2.0 |
 | Geist, Fragment Mono, Inter, IBM Plex Mono, Fira Code, Fraunces | `fonts/` | SIL Open Font License 1.1, [fonts/licenses/](fonts/licenses/) |
 | Apache ECharts | installed in the sandbox image | Apache-2.0 |

@@ -9,11 +9,11 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 
 import pytest
-from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
 
 from design_agent.harness import inbox as inbox_module
 from design_agent.harness.learning import ObservationStore
 from design_agent.harness.tasks import REGISTRY
+from design_agent.kit.messages import AIMessage, BaseMessage, ToolMessage
 from design_agent.testing.scripted_model import (
     RespondingChatModel,
     ScriptedChatModel,

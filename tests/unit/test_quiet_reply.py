@@ -6,11 +6,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from langchain.agents import create_agent
-from langchain.agents.middleware import AgentMiddleware, AgentState
-from langchain_core.messages import AIMessage, HumanMessage
-from langgraph.runtime import Runtime
-
+from design_agent.kit.agent import create_agent
+from design_agent.kit.messages import AIMessage, HumanMessage
+from design_agent.kit.middleware import AgentMiddleware, AgentState
+from design_agent.kit.types import Runtime
 from design_agent.middleware.quiet import SENTINEL_MARK, QuietReplyMiddleware
 from design_agent.testing.scripted_model import ScriptedChatModel, reply
 

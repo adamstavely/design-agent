@@ -10,9 +10,9 @@ from typing import Any
 
 import httpx
 import pytest
-from deepagents.backends.protocol import FileDownloadResponse, FileUploadResponse
 
 from design_agent.config import Settings
+from design_agent.kit.deep.backends import FileDownloadResponse, FileUploadResponse
 from design_agent.tools.fetch import FetchRefused, build_fetch_tool, check_url, public_address
 from design_agent.tools.media import _png_alpha_report, build_media_tools
 
