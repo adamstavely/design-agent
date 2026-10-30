@@ -17,6 +17,7 @@ workspace/projects/*
 !workspace/projects/.gitkeep
 workspace/out/
 workspace/state/
+workspace/memories/
 
 # Build and tool output
 .venv/

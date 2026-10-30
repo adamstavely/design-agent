@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added: team memory without MDA
+
+- **`/memories/agent/` is back on every runtime.** It is a host folder (`workspace/memories/agent/`,
+  moved with `DESIGN_AGENT_MEMORY_PATH`) routed into the lead's file tools, so house rules the team
+  states outlive the sandbox, every thread and a restart. Its `AGENTS.md` is read at the start of
+  each turn into the lead's system prompt (`middleware/team_memory.py`); people can read or correct
+  the files on disk. The self-hosted compose file keeps it in a `memories` volume. There is no
+  personal layer (`/memories/user/`). Turn it off with `DESIGN_AGENT_ENABLE_MEMORY=0`.
+
 ### Changed: runs without LangChain or LangSmith
 
 This fork no longer depends on LangChain, LangGraph, LangSmith, Deep Agents or Managed Deep Agents.

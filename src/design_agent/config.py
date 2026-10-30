@@ -93,6 +93,7 @@ class Settings(BaseSettings):
     max_parallel_builders: int = Field(default=3, ge=1, le=16)
     job_budget_usd: float | None = Field(default=None, gt=0)
     workspace_root: Path = Path("workspace")
+    memory_path: Path = Path("workspace/memories")
 
     # Brand
     brand_path: Path = Path("workspace/brand")
@@ -133,6 +134,8 @@ class Settings(BaseSettings):
     enable_footer: bool = True
     enable_steering: bool = True
     enable_learning: bool = True
+    enable_memory: bool = True
+    """Team memory: `/memories/agent/`, a host folder kept across runs (see `resolved_memory_path`)."""
     enable_tool_clearing: bool = False
     """Server-side clearing of old tool results in helpers' requests (Anthropic only)."""
     timezone: str = "UTC"
@@ -216,6 +219,13 @@ class Settings(BaseSettings):
             if sep and token and caller:
                 result[token] = caller
         return result
+
+    def resolved_memory_path(self, root: Path) -> Path | None:
+        """The team memory folder (`/memories/agent/` to the agent), or None when memory is off."""
+        if not self.enable_memory:
+            return None
+        base = self.memory_path if self.memory_path.is_absolute() else root / self.memory_path
+        return base / "agent"
 
     def resolved_brand_path(self, root: Path) -> Path:
         """The active brand pack: the configured folder when it has a pack, else the sample brand."""

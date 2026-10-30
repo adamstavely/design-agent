@@ -49,6 +49,7 @@ services:
       - ../../workspace/brand:/app/workspace/brand:ro
       - ../../private-fonts:/app/private-fonts:ro
       - out:/app/workspace/out
+      - memories:/app/workspace/memories
     depends_on:
       postgres:
         condition: service_healthy
@@ -75,6 +76,7 @@ services:
       - ../../workspace/brand:/app/workspace/brand:ro
       - ../../private-fonts:/app/private-fonts:ro
       - out:/app/workspace/out
+      - memories:/app/workspace/memories
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,3 +86,4 @@ services:
 volumes:
   postgres:
   out:
+  memories:

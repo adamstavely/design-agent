@@ -563,11 +563,20 @@ class CompositeBackend(SandboxBackendProtocol):
         result = backend.ls(inner)
         if result.entries is not None and prefix:
             result.entries = [{**e, "path": self._out(prefix, e["path"])} for e in result.entries]
-        if not prefix and result.entries is not None and path.rstrip("/") in ("", "/"):
-            shown = {e["path"] for e in result.entries}
-            for route in self.routes:
-                if route not in shown:
-                    result.entries.append({"path": route, "is_dir": True})
+        if not prefix:
+            # A route below this folder shows as its next folder down (`/memories/` at `/`), even
+            # when the default backend has no such folder.
+            base = path.rstrip("/") + "/"
+            below = {
+                base + r[len(base) :].split("/", 1)[0] + "/"
+                for r in self.routes
+                if r.startswith(base)
+            }
+            if below:
+                entries = result.entries if result.entries is not None else []
+                shown = {e["path"].rstrip("/") + "/" for e in entries}
+                entries += [{"path": d, "is_dir": True} for d in sorted(below - shown)]
+                result = LsResult(entries=entries)
         return result
 
     def read(self, file_path: str, offset: int = 0, limit: int = DEFAULT_READ_LIMIT) -> ReadResult:

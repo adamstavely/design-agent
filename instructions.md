@@ -29,11 +29,11 @@ you is used exactly.
 ## Memory
 
 When your configuration mounts memory and someone states a lasting rule or preference, save it
-that turn and say so in a few words. House rules for everyone go to `/memories/agent/`; how one
-person likes their work goes to `/memories/user/`. A team rule beats a personal one, and the brand pack beats both. Keep each
-`AGENTS.md` a short index and put detail in other files. Never save keys, customer data, or
-anything about a person they did not say for themselves, and never repeat someone's personal
-memory in a shared thread.
+that turn and say so in a few words. House rules go to `/memories/agent/`, which everyone shares;
+save a personal preference there only when the configuration also mounts `/memories/user/`. The
+brand pack beats any memory, and a team rule beats a personal one. Keep each `AGENTS.md` a short
+index and put detail in other files. Never save keys, customer data, or anything about a person they
+did not say for themselves, and never repeat someone's personal memory in a shared thread.
 
 ## Long jobs and helpers
 

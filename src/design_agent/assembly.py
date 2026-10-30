@@ -45,6 +45,7 @@ from design_agent.middleware.steering import (
     LeadSteeringMiddleware,
     SteeringToolsMiddleware,
 )
+from design_agent.middleware.team_memory import TeamMemoryMiddleware
 from design_agent.middleware.today import TodayMiddleware, ZoneFor, fixed_zone
 from design_agent.middleware.watch_tools import WatchToolsMiddleware
 from design_agent.middleware.workspace import WorkspaceStagerMiddleware
@@ -193,6 +194,9 @@ def build_agent_components(
         TodoListMiddleware(),
         TodayMiddleware(zone_for=zone_for or fixed_zone(settings.timezone)),
     ]
+    memory = settings.resolved_memory_path(root)
+    if memory is not None:
+        middleware.append(TeamMemoryMiddleware(memory))
     slack = runtime.slack
     servers = services([s.name for s in mcp_servers])
     if slack is not None:

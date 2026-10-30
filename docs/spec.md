@@ -404,14 +404,20 @@ duplicates merge; a note whose harm votes lead by two is dropped. Observations a
 weighs, never rules. Brand rules are forever; model rules last until the next model. Optional, on by
 default when a store exists.
 
-### 7.13 Memory (not mounted)
+### 7.13 Team memory
 
-The self-hosted and local runtimes mount no memory files. Every lesson still has one owner: craft → a
-skill, a fact → a check, a brand rule → the brand pack, a pattern from past jobs → an observation
-(§7.12). `instructions.md` keeps its memory rule conditional ("when your configuration mounts
-memory"), so a deployment that adds a `/memories/` route later gets the policy without a prompt
-change. Memory is not a primary value driver for design work; observations carry most of the
-learning.
+Every runtime mounts one memory layer, `/memories/agent/`: a host folder (`DESIGN_AGENT_MEMORY_PATH`,
+default `workspace/memories`, plus `agent/`) routed into the lead's file tools, so it outlives the
+sandbox, every thread and a restart, and people can read or fix it on disk. `TeamMemoryMiddleware`
+reads its `AGENTS.md` at the start of each turn and appends it to the lead's system prompt (cut at
+12,000 characters with a note to tidy it). Read per turn, not per call, so a turn's prompt and its
+cached prefix stay fixed; a rule saved mid-turn shows from the next turn. Anyone who mentions the
+agent can add to it, so it is shared notes, never private data. There is no personal layer
+(`/memories/user/`). Turn it off with `DESIGN_AGENT_ENABLE_MEMORY=0`.
+
+Every lesson still has one owner: craft → a skill, a fact → a check, a brand rule → the brand pack, a
+pattern from past jobs → an observation (§7.12), a house preference the team states → team memory.
+The brand pack beats memory.
 
 ## 8. The designer's computer
 
@@ -867,6 +873,7 @@ DESIGN_AGENT_ENABLE_PROGRESS=1
 DESIGN_AGENT_ENABLE_FOOTER=1
 DESIGN_AGENT_ENABLE_STEERING=1
 DESIGN_AGENT_ENABLE_LEARNING=1
+DESIGN_AGENT_ENABLE_MEMORY=1
 DESIGN_AGENT_ENABLE_TOOL_CLEARING=0
 
 # Self-hosted

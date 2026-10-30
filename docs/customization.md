@@ -41,6 +41,16 @@ have a quick helper propose observations (`learn_from_job`). Before a similar jo
 rates the ones that helped. Observations live in the agent's store (SQLite or Postgres) and are notes the agent
 weighs, never rules. Turn it off with `DESIGN_AGENT_ENABLE_LEARNING=0`.
 
+## Team memory
+
+When someone states a lasting house rule ("captions in sentence case", "no drop shadows"), the agent
+saves it in `/memories/agent/` and says so. That folder is `workspace/memories/agent/` on the host
+(`DESIGN_AGENT_MEMORY_PATH` moves it), shared by every thread and kept across restarts. Its
+`AGENTS.md` is a short index the agent reads at the start of every turn; other files there are
+detail it reads when needed. Edit or delete the files directly to correct what it remembers. It is
+shared by everyone who talks to the agent, so nothing private belongs there. Turn it off with
+`DESIGN_AGENT_ENABLE_MEMORY=0`.
+
 ## MCP servers
 
 [Integrations](integrations.md) sets up the hosted ones (Notion, Linear, GitHub, Figma and more) in
